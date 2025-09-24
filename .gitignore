@@ -1,32 +1,78 @@
-# Prerequisites
+## ===== C++ =====
 *.d
 
-# Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
 
-# Precompiled Headers
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
 *.mod
 *.smod
 
-# Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
 
-# Executables
 *.exe
 *.out
 *.app
+
+## ===== CMAKE =====
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+
+Testing
+Makefile
+
+cmake_install.cmake
+install_mainfest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+_deps
+
+## ===== ROS2 =====
+devel/
+install/
+logs/
+log/
+build/
+bin/
+lib/
+msg_gen/
+srv_gen/
+msg/*Action.msg
+msg/*ActionFeedback.msg
+msg/*ActionGoal.msg
+msg/*ActionResult.msg
+msg/*Feedback.msg
+msg/*Goal.msg
+msg/*Result.msg
+msg/_*.py
+build_isolated/
+devel_isolated/
+
+## ===== CATKIN =====
+CATKIN_IGNORE
+
+## ===== VSCODE =====
+.vscode/
+
+## ===== Generated Docs =====
+*.dox
+*.wikidoc
+
+## ===== Generated Reconfig =====
+*.cfgc
+/cfg/cpp/
+/cfg/*.py
