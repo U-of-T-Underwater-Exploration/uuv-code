@@ -11,15 +11,28 @@
 using namespace std::chrono_literals;
 
 class StateEstimatorNode : public rclcpp::Node {
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisherOdom_;
-
   // Parameters
   std::string frameId_;   // [ ]
   double publishRate_;    // [ Hz ]
 
+  // Pub & Sub
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisherOdom_;
+
+  // State Variables
+  Eigen::Quaterniond ori_; 
+
   private:
     void timer_callback() {
+
+      /**
+       * TODO:
+       * - Create normalized a₆, ω₆, B₆
+       * - Look-up g & m 
+       * - ori = MahonyFilter(a₆, ω₆, B₆, g, m)
+       * - [pose, twist] = KF(a₆, ori, p)
+       */
+
       auto message = nav_msgs::msg::Odometry();
 
       /**
@@ -45,9 +58,12 @@ class StateEstimatorNode : public rclcpp::Node {
 
       std::chrono::duration<double, std::milli> publishPeriodChrono { 1000.0/publishRate_ };
 
-      /// Publisher & Timer
+      // Publisher & Subscribers
       timer_ = this->create_wall_timer(publishPeriodChrono, std::bind(&StateEstimatorNode::timer_callback, this));
       publisherOdom_ = this->create_publisher<nav_msgs::msg::Odometry>("state_estimate", 10);
+
+      // State Variables
+      ori_ = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
     }
 };
 
