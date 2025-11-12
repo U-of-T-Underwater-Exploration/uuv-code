@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<robot name="uuv">
+    <!-- UUV Base -->
+    <link name="base_link"/>
+
+    <!-- SENSOR LINKS -->
+        <!-- Flight Controller -->
+        <link name="fc_link"/>
+        <joint name="base_to_fc" type="fixed">
+            <parent link="base_link"/>
+            <child link="fc_link"/>
+            <origin xyz="0.15 0.0 0.0" rpy="0 0 0"/>
+        </joint>
+
+            <!-- IMU -->
+            <link name="imu_link"/>
+            <joint name="base_to_imu" type="fixed">
+                <parent link="fc_link"/>
+                <child link="imu_link"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+            </joint>
+
+            <!-- Compass -->
+            <link name="compass_link"/>
+            <joint name="base_to_compass" type="fixed">
+                <parent link="fc_link"/>
+                <child link="compass_link"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+            </joint>
+
+            <!-- Magnetometer -->
+            <link name="mag_link"/>
+            <joint name="base_to_mag" type="fixed">
+                <parent link="fc_link"/>
+                <child link="mag_link"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+            </joint>
+
+            <!-- Int. Barometer -->
+            <link name="baro_int_link"/>
+            <joint name="base_to_baro_int" type="fixed">
+                <parent link="fc_link"/>
+                <child link="baro_int_link"/>
+                <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+            </joint>
+        
+
+        <!-- Ext. Barometer -->
+        <link name="baro_ext_link"/>
+        <joint name="base_to_baro_ext" type="fixed">
+            <parent link="base_link"/>
+            <child link="baro_ext_link"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+        </joint>
+
+        <!-- Camera -->
+        <link name="cam_link"/>
+        <joint name="base_to_cam" type="fixed">
+            <parent link="base_link"/>
+            <child link="cam_link"/>
+            <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+        </joint>
+
+    <!-- THRUSTER LINKS -->
+</robot>
