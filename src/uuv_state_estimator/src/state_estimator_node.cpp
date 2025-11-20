@@ -4,6 +4,8 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/magnetic_field.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 
 #include "Eigen/Dense"
@@ -18,9 +20,14 @@ class StateEstimatorNode : public rclcpp::Node {
   // Pub & Sub
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisherOdom_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr subImu_;
+  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr subMag;
 
   // State Variables
   Eigen::Quaterniond ori_; 
+  Eigen::Vector3d acc_;
+  Eigen::Vector3d angVel_;
+  Eigen::Vector3d mag_;
 
   private:
     void timer_callback() {
