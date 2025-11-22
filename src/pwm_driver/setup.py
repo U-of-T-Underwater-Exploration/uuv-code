@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'pwm_driver'
+package_name = 'uuv_pwm_driver'
 
 setup(
     name=package_name,
