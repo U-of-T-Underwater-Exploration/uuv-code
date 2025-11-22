@@ -49,8 +49,8 @@ class PWMDriver(Node):
 
     def set_pwm_thruster_channels(self, values):
         """Set PWM values for channels one to eight."""
-        channels = [PwmChannel.CH1, PwmChannel.CH2, PwmChannel.CH3, PwmChannel.CH4,
-                    PwmChannel.CH5, PwmChannel.CH6, PwmChannel.CH7, PwmChannel.CH8]
+        channels = [PwmChannel.Ch1, PwmChannel.Ch2, PwmChannel.Ch3, PwmChannel.Ch4,
+                    PwmChannel.Ch5, PwmChannel.Ch6, PwmChannel.Ch7, PwmChannel.Ch8]
         values = [v for v in values]
         
         navigator.set_pwm_channels_duty_cycle_values(channels, values)
