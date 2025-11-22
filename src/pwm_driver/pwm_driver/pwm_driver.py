@@ -73,7 +73,7 @@ class PWMDriver(Node):
         navigator.init()
         freq = self.get_parameter('pwm_frequency_hz').value
         navigator.set_pwm_freq_hz(freq)
-        navigator.set_pwm_enabled(True)
+        navigator.set_pwm_enable(True)
 
 
 def main(args=None):
