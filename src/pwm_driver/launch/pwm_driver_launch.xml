@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="pwm_driver" exec="pwm_driver_node" name="pwm_driver" namespace="pwm_driver">
+  <node pkg="uuv_pwm_driver" exec="pwm_driver_node" name="pwm_driver" namespace="pwm_driver">
     <param name="pwm_frequency_hz" value="50"/>
   </node>
 </launch>
