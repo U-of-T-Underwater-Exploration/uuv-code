@@ -18,7 +18,7 @@ class PWMDriver(Node):
         self.thrusters_sub = self.create_subscription(Float32MultiArray, '/pwm/thrusters', self.thrusters_callback, 10)
         self.pwm_pub = self.create_publisher(ThrustersPWM, '/pwm/generated', 10)
 
-        # self.init_navigator()
+        self.init_navigator()
         self.pwm_values = [0.0] * 16  # Initialize with zero PWM values
         self.pwm_valid = [False] * 16  # Initialize all channels as invalid
 
@@ -31,20 +31,24 @@ class PWMDriver(Node):
         for i, duty in enumerate(thruster_duty):
             self.pwm_valid[i] = True  # Assume valid unless proven otherwise
 
-            if not (0.0 <= duty <= 100.0):
-                self.get_logger().error('Thruster PWM values must be between 0.0 and 100.0.')
-                duty = max(0.0, min(100.0, duty))
+            if not (0.0 <= duty <= 1.0):
+                self.get_logger().error('Thruster PWM values must be between 0.0 and 1.0.')
+                duty = max(0.0, min(1.0, duty))
                 self.pwm_valid[i] = False
 
             self.pwm_values[i] = duty
 
-        # self.set_pwm_thruster_channels(pwm_values)
+        try:
+            self.set_pwm_thruster_channels(self.pwm_values)
+        except Exception as e:
+            self.get_logger().error(f'Bluenavigator error: {e}')
+
         self.publish_pwm()
 
     def set_pwm_thruster_channels(self, values):
         """Set PWM values for channels one to eight."""
         channels = [1, 2, 3, 4, 5, 6, 7, 8]
-        values = [v / 100.0 for v in values]
+        values = [v for v in values]
         
         navigator.set_pwm_channels_duty_cycle_values(channels, values)
 
