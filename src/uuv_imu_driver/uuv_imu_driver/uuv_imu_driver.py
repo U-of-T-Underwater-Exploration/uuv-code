@@ -52,8 +52,8 @@ class ImuPublisher(Node):
         
 
         #try: 
-        accel = navigator.get_accel()
-        gyro = navigator.get_gyro()
+        accel = navigator.read_accel()
+        gyro = navigator.read_gyro()
         #except:
         #   self.get_logger().error('Failed to get IMU data from Navigator')
 
