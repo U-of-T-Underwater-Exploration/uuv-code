@@ -27,7 +27,7 @@ class ImuPublisher(Node):
         
         timer_period = 0.1 #config['timer_period']
 
-        try: navigator.initialize()
+        try: navigator.init()
         except:
             self.get_logger().error('Failed to initialize connection to Navigator')
 
