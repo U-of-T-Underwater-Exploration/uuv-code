@@ -51,11 +51,11 @@ class ImuPublisher(Node):
     
         
 
-        try: 
-            accel = navigator.get_accel()
-            gyro = navigator.get_gyro()
-        except:
-            self.get_logger().error('Failed to get IMU data from Navigator')
+        #try: 
+        accel = navigator.get_accel()
+        gyro = navigator.get_gyro()
+        #except:
+        #   self.get_logger().error('Failed to get IMU data from Navigator')
 
         if accel is not None and gyro is not None:
             raw_data.linear_acceleration.x = accel.x
