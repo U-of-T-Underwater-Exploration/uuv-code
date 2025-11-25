@@ -30,30 +30,20 @@ class StateEstimatorNode : public rclcpp::Node {
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformListener tf_listener_;
 
-    // Pub & Sub
-    rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;
-    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
-    rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr sub_compass_;
+  // Pub & Sub
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisherOdom_;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;
+  rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr subMag_;
 
-    // State
-    Eigen::Quaternionf q_bodyToWorld_;
-    Eigen::Vector3f a_body_;
-    Eigen::Vector3f a_corrected_body_;
-    Eigen::Vector3f w_body_;
-    Eigen::Vector3f m_body_;
+  // State Variables
+  Eigen::Quaterniond ori_; 
+  Eigen::Vector3d acc_;
+  Eigen::Vector3d angVel_;
+  Eigen::Vector3d mag_;
 
-    // Sensor transforms
-    Eigen::Isometry3f T_baseToIMU_;
-    Eigen::Isometry3f T_baseToCompass_;
-
-    // Internal Tools
-    IMUCorrector corrector_;
-
-
-    // --------------- Callbacks ---------------
-
-    void pub_odom_callback() {
+  private:
+    void timer_callback() {
 
       /**
        * TODO:
@@ -83,7 +73,24 @@ class StateEstimatorNode : public rclcpp::Node {
        *  Twist + Covaraiance
        */
 
-      pub_odom_->publish(message);
+      publisherOdom_->publish(message);
+    }
+
+    void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
+      acc_ << msg->linear_acceleration.x,
+              msg->linear_acceleration.y,
+              msg->linear_acceleration.z;
+      angVel_ << msg->angular_velocity.x,
+                 msg->angular_velocity.y,
+                 msg->angular_velocity.z;
+      RCLCPP_INFO(this->get_logger(), "imu callback is working%f%f%f", acc_[0], acc_[1], acc_[2]);
+    }
+
+    void mag_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg) {
+      mag_ << msg->magnetic_field.x,
+              msg->magnetic_field.y,
+              msg->magnetic_field.z;
+      RCLCPP_INFO(this->get_logger(), "mag_callback is working%f%f%f", mag_[0], mag_[1], mag_[2]);
     }
 
   public:
@@ -121,11 +128,19 @@ class StateEstimatorNode : public rclcpp::Node {
       corrector_.init(fp_, (float)(this->get_parameter("lpf_cutoff").as_double()), T_baseToIMU_.translation());
 
       // State Variables
-      q_bodyToWorld_ = Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0);
-      a_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-      a_corrected_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-      w_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-      m_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+      ori_ = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+      ImuSubscriber();
+      MagSubscriber();
+    }
+    
+    void ImuSubscriber() {
+      subImu_ =  this->create_subscription<sensor_msgs::msg::Imu>(
+        "imu/data", 10, std::bind(&StateEstimatorNode::imu_callback, this, std::placeholders::_1));
+    }
+    
+    void MagSubscriber() {
+      subMag_ = this->create_subscription<sensor_msgs::msg::MagneticField>(
+        "compass/data", 10, std::bind(&StateEstimatorNode::mag_callback, this, std::placeholders::_1));
     }
 };
 
