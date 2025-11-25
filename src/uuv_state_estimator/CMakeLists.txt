@@ -14,7 +14,10 @@ find_package(ament_cmake REQUIRED)
 
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 ## Include directories
 include_directories(
@@ -27,7 +30,10 @@ add_executable(state_estimator_node src/state_estimator_node.cpp)
 ament_target_dependencies(state_estimator_node
   rclcpp
   sensor_msgs
+  geometry_msgs
   nav_msgs
+  tf2_ros
+  tf2_eigen
 )
 
 ## Use external dependencies

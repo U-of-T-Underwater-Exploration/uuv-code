@@ -14,7 +14,7 @@
 
             <!-- IMU -->
             <link name="imu_link"/>
-            <joint name="base_to_imu" type="fixed">
+            <joint name="fc_to_imu" type="fixed">
                 <parent link="fc_link"/>
                 <child link="imu_link"/>
                 <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
@@ -22,7 +22,7 @@
 
             <!-- Compass -->
             <link name="compass_link"/>
-            <joint name="base_to_compass" type="fixed">
+            <joint name="fc_to_compass" type="fixed">
                 <parent link="fc_link"/>
                 <child link="compass_link"/>
                 <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
@@ -30,7 +30,7 @@
 
             <!-- Magnetometer -->
             <link name="mag_link"/>
-            <joint name="base_to_mag" type="fixed">
+            <joint name="fc_to_mag" type="fixed">
                 <parent link="fc_link"/>
                 <child link="mag_link"/>
                 <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
@@ -38,7 +38,7 @@
 
             <!-- Int. Barometer -->
             <link name="baro_int_link"/>
-            <joint name="base_to_baro_int" type="fixed">
+            <joint name="fc_to_baro_int" type="fixed">
                 <parent link="fc_link"/>
                 <child link="baro_int_link"/>
                 <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>

@@ -6,39 +6,72 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_eigen/tf2_eigen.hpp"
 
 #include "Eigen/Dense"
 
+#include "uuv_state_estimator/imu_corrector.hpp"
+
 using namespace std::chrono_literals;
 
+namespace utux::state_estimator {
+
 class StateEstimatorNode : public rclcpp::Node {
-  // Parameters
-  std::string frameId_;   // [ ]
-  double publishRate_;    // [ Hz ]
-
-  // Pub & Sub
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisherOdom_;
-  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr subImu_;
-  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr subMag;
-
-  // State Variables
-  Eigen::Quaterniond ori_; 
-  Eigen::Vector3d acc_;
-  Eigen::Vector3d angVel_;
-  Eigen::Vector3d mag_;
-
   private:
-    void timer_callback() {
+    // Parameters
+    std::string frameId_;   // Coordinate frame of the odometry messages
+    double fp_;             // [ Hz ] | Publishing rate  of the node
+
+    // Tf
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
+
+    // Pub & Sub
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
+    rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr sub_compass_;
+
+    // State
+    Eigen::Quaternionf q_bodyToWorld_;
+    Eigen::Vector3f a_body_;
+    Eigen::Vector3f a_corrected_body_;
+    Eigen::Vector3f w_body_;
+    Eigen::Vector3f m_body_;
+
+    // Sensor transforms
+    Eigen::Isometry3f T_baseToIMU_;
+    Eigen::Isometry3f T_baseToCompass_;
+
+    // Internal Tools
+    IMUCorrector corrector_;
+
+
+    // --------------- Callbacks ---------------
+
+    void pub_odom_callback() {
 
       /**
        * TODO:
-       * - Create normalized a₆, ω₆, B₆
-       * - Look-up g & m 
-       * - ori = MahonyFilter(a₆, ω₆, B₆, g, m)
-       * - [pose, twist] = KF(a₆, ori, p)
+       * [ ] ENU --> NED
+       * [ ] sensor_frame --> body_frame
+       * [X] Correct a₆
+       * [X] Make Normalized a₆ & B₆
+       * [ ] Look-up g & m 
+       * [ ] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
+       * [ ] [pose, twist] = KF(a₆, ω₆, ori, P)
        */
+
+      //  Correct acceleration reading w/r to body
+      a_corrected_body_ = corrector_.update(a_body_, w_body_);  
+      
+      // Normalized vectors
+      Eigen::Vector3f a_corrNorm_body = a_corrected_body_.normalized();
+      Eigen::Vector3f m_norm_body = m_body_.normalized();
 
       auto message = nav_msgs::msg::Odometry();
 
@@ -50,33 +83,58 @@ class StateEstimatorNode : public rclcpp::Node {
        *  Twist + Covaraiance
        */
 
-      publisherOdom_->publish(message);
+      pub_odom_->publish(message);
     }
 
   public:
-    StateEstimatorNode() : Node("state_estimator") {
+    StateEstimatorNode() : Node("state_estimator"), tf_buffer_(this->get_clock()), tf_listener_(tf_buffer_)  {
       // Parameters
       this->declare_parameter("frame_id", "odom");
       this->declare_parameter("publish_rate", 50.0);
+      this->declare_parameter("lpf_cutoff", 50.0);
 
       frameId_ = this->get_parameter("frame_id").as_string();
-      publishRate_ = this->get_parameter("publish_rate").as_double();
+      fp_ = this->get_parameter("publish_rate").as_double();
 
+      // Tf
+      try {
+        geometry_msgs::msg::TransformStamped tf_stamped;
 
-      std::chrono::duration<double, std::milli> publishPeriodChrono { 1000.0/publishRate_ };
+        // Get IMU transformation
+        tf_stamped = tf_buffer_.lookupTransform("imu_link", "base_link", tf2::TimePointZero, 500ms);
+        T_baseToIMU_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
+
+        // Get Compass transformation
+        tf_stamped = tf_buffer_.lookupTransform("compass_link", "base_link", tf2::TimePointZero, 500ms);
+        T_baseToCompass_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
+      }
+      catch (tf2::TransformException &ex){  // TF Fail report
+        RCLCPP_WARN(this->get_logger(), "Couldn't get TF: [%s]", ex.what());
+      }
 
       // Publisher & Subscribers
-      timer_ = this->create_wall_timer(publishPeriodChrono, std::bind(&StateEstimatorNode::timer_callback, this));
-      publisherOdom_ = this->create_publisher<nav_msgs::msg::Odometry>("state_estimate", 10);
+      std::chrono::duration<double, std::milli> publishPeriodChrono { 1000.0/fp_ };
+      timer_ = this->create_wall_timer(publishPeriodChrono, std::bind(&StateEstimatorNode::pub_odom_callback, this));
+      pub_odom_ = this->create_publisher<nav_msgs::msg::Odometry>("state_estimate", 10);
+
+      // Internal Tools
+      corrector_.init(fp_, (float)(this->get_parameter("lpf_cutoff").as_double()), T_baseToIMU_.translation());
 
       // State Variables
-      ori_ = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+      q_bodyToWorld_ = Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0);
+      a_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+      a_corrected_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+      w_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+      m_body_ = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
     }
 };
 
+}   // utux::state_estimator
+
 int main(int argc, char * argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<StateEstimatorNode>());
+  rclcpp::spin(std::make_shared<utux::state_estimator::StateEstimatorNode>());
   rclcpp::shutdown();
   return 0;
 }
+
