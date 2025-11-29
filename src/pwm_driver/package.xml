@@ -9,7 +9,7 @@
 
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
-  <depend>bluebluerobotics_navigator</depend>
+  <depend>bluerobotics_navigator</depend>
 
   <exec_depend>pwm_msg</exec_depend>
   <exec_depend>ros2launch</exec_depend>
