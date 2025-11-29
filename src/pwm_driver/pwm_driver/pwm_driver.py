@@ -5,7 +5,6 @@ from rclpy.node import Node
 from pwm_msg.msg import ThrustersPWM
 from std_msgs.msg import Float32MultiArray
 import bluerobotics_navigator as navigator
-from bluerobotics_navigator import PwmChannel
 
 class PWMDriver(Node):
 
@@ -49,8 +48,8 @@ class PWMDriver(Node):
 
     def set_pwm_thruster_channels(self, values):
         """Set PWM values for channels one to eight."""
-        
-        channels = [i for i in range(1,9)]
+
+        channels = [0, 1, 2, 3, 4, 5, 6, 7]
         
         navigator.set_pwm_channels_duty_cycle_values(channels, values)
 
