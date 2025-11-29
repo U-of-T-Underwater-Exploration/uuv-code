@@ -1,0 +1,6 @@
+source;share/uuv_compass_driver/hook/pythonpath.ps1
+source;share/uuv_compass_driver/hook/pythonpath.dsv
+source;share/uuv_compass_driver/hook/pythonpath.sh
+source;share/uuv_compass_driver/hook/ament_prefix_path.ps1
+source;share/uuv_compass_driver/hook/ament_prefix_path.dsv
+source;share/uuv_compass_driver/hook/ament_prefix_path.sh

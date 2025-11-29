@@ -1,0 +1,36 @@
+running egg_info
+creating ../build/uuv_compass_driver/uuv_compass_driver.egg-info
+writing ../build/uuv_compass_driver/uuv_compass_driver.egg-info/PKG-INFO
+writing dependency_links to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/dependency_links.txt
+writing entry points to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/entry_points.txt
+writing requirements to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/requires.txt
+writing top-level names to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/top_level.txt
+writing manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+reading manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+copying uuv_compass_driver/__init__.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+copying uuv_compass_driver/compass_driver_node.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+running install
+running install_lib
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+copying /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver/__init__.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+copying /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver/compass_driver_node.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+byte-compiling /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver/compass_driver_node.py to compass_driver_node.cpython-310.pyc
+running install_data
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index
+creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index/packages
+copying resource/uuv_compass_driver -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index/packages
+copying package.xml -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/uuv_compass_driver
+running install_egg_info
+Copying ../build/uuv_compass_driver/uuv_compass_driver.egg-info to /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver-0.0.0-py3.10.egg-info
+running install_scripts
+Installing compass_driver_node script to /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/uuv_compass_driver
+writing list of installed files to '/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/install.log'

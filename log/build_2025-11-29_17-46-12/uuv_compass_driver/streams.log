@@ -1,0 +1,38 @@
+[1.389s] Invoking command in '/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/uuv_compass_driver': PYTHONPATH=/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/uuv_compass_driver build --build-base /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build install --record /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/install.log --single-version-externally-managed install_data
+[1.822s] running egg_info
+[1.823s] creating ../build/uuv_compass_driver/uuv_compass_driver.egg-info
+[1.824s] writing ../build/uuv_compass_driver/uuv_compass_driver.egg-info/PKG-INFO
+[1.824s] writing dependency_links to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/dependency_links.txt
+[1.867s] writing entry points to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/entry_points.txt
+[1.868s] writing requirements to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/requires.txt
+[1.868s] writing top-level names to ../build/uuv_compass_driver/uuv_compass_driver.egg-info/top_level.txt
+[1.868s] writing manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+[1.868s] reading manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+[1.868s] adding license file 'LICENSE'
+[1.868s] writing manifest file '../build/uuv_compass_driver/uuv_compass_driver.egg-info/SOURCES.txt'
+[1.876s] running build
+[1.876s] running build_py
+[1.876s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build
+[1.876s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib
+[1.876s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+[1.876s] copying uuv_compass_driver/__init__.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+[1.876s] copying uuv_compass_driver/compass_driver_node.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver
+[1.876s] running install
+[1.876s] running install_lib
+[1.876s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+[1.876s] copying /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver/__init__.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+[1.876s] copying /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build/lib/uuv_compass_driver/compass_driver_node.py -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver
+[1.876s] byte-compiling /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver/__init__.py to __init__.cpython-310.pyc
+[1.876s] byte-compiling /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver/compass_driver_node.py to compass_driver_node.cpython-310.pyc
+[1.876s] running install_data
+[1.878s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index
+[1.878s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index
+[1.879s] creating /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index/packages
+[1.879s] copying resource/uuv_compass_driver -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/ament_index/resource_index/packages
+[1.879s] copying package.xml -> /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/share/uuv_compass_driver
+[1.879s] running install_egg_info
+[1.892s] Copying ../build/uuv_compass_driver/uuv_compass_driver.egg-info to /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages/uuv_compass_driver-0.0.0-py3.10.egg-info
+[1.894s] running install_scripts
+[1.928s] Installing compass_driver_node script to /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/uuv_compass_driver
+[1.930s] writing list of installed files to '/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/install.log'
+[1.977s] Invoked command in '/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/uuv_compass_driver' returned '0': PYTHONPATH=/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/install/uuv_compass_driver/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/uuv_compass_driver build --build-base /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/build install --record /home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/build/uuv_compass_driver/install.log --single-version-externally-managed install_data
