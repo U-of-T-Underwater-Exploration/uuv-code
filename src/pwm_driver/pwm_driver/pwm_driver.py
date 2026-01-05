@@ -16,11 +16,15 @@ class PWMDriver(Node):
         
         self.get_logger().info('PWM Driver Node has been started.')
         self.thrusters_sub = self.create_subscription(Float32MultiArray, '/pwm/thrusters', self.thrusters_callback, 10)
+        self.command_sub = self.create_subscription(Float32MultiArray, '/pwm/command', seelf.command_callback, 10)
+        
         self.pwm_pub = self.create_publisher(ThrustersPWM, '/pwm/generated', 10)
+
 
         self.init_navigator()
         self.pwm_values = [0.0] * 16  # Initialize with zero PWM values
         self.pwm_valid = [False] * 16  # Initialize all channels as invalid
+    
 
     def thrusters_callback(self, msg):
         thruster_duty = msg.data
@@ -44,6 +48,36 @@ class PWMDriver(Node):
         except Exception as e:
             self.get_logger().info(f'Bluenavigator error: {e}')
 
+        self.publish_pwm()
+
+    def command_callback(self, msg):
+        if len(msg.data)!=2: #check format
+            self.get_logger().error('/pwm/command needs length 2 [channel,duty]')
+            return
+
+        command_channel = int(msg.data[0])
+        command_duty = msg.data[1]
+
+        if not(8<=command_channel<=15): #check channel in range
+            self.get_logger().error('PWM channel out of range 8-15')
+            return
+
+        valid = True #assume valid
+        if not(0.0<=command_duty<=1.0): #check duty
+            self.get_logger().error('PWM values must be between 0.0 and 1.0')
+            command_duty = max(0.0, min(1.0,command_duty))
+            valid=False
+
+        self.pwm_values[command_channel]=command_duty
+        self.pwm_valid[command_channel]=valid
+        
+        try:
+            navigator.set_pwm_channels_duty_cycle_values([command_channel],[command_duty])
+        except Exception as e:
+            self.get_logger().info(f'BlueNavigator error: {e}')
+            self.pwm_valid[command_channel]=False
+
+        
         self.publish_pwm()
 
     def set_pwm_thruster_channels(self, values):
