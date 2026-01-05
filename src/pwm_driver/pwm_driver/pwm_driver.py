@@ -52,7 +52,7 @@ class PWMDriver(Node):
 
     def command_callback(self, msg):
         if len(msg.data)!=2: #check format
-            self.get_logger().error('/pwm/command needs length 2 [channel,duty]')
+            self.get_logger().error('/pwm/command needs length 2')
             return
 
         command_channel = int(msg.data[0])
