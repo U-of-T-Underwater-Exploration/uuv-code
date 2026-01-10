@@ -14,4 +14,5 @@ test/test_copyright.py
 test/test_flake8.py
 test/test_pep257.py
 uuv_compass_driver/__init__.py
+uuv_compass_driver/compass_driver_corrected_node.py
 uuv_compass_driver/compass_driver_node.py

@@ -23,10 +23,13 @@ class CompassPublisher(Node):
         
         #From IMU template
         # tbd: change the path to config file to be dynamic
-        #with open("/home/katherine/Documents/GitHub/uuv-code/src/uuv_imu_driver/uuv_imu_driver/uuv_imu_driver.yml") as file:
-        #    config = yaml.safe_load(file)
+        with open("/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/uuv_compass_driver/uuv_compass_driver/uuv_compass_driver.yml") as file:
+            global config 
+            config = yaml.safe_load(file)
         
-        timer_period = 0.1 #config['timer_period']
+        #timer_period = 0.1 #config['timer_period']
+        timer_period = config['timer_period']
+
 
         try: navigator.init()
         except:
@@ -91,6 +94,7 @@ class CompassPublisher(Node):
         self.rawDataPublisher_.publish(raw_data)
         self.dataPublisher.publish(data)
         
+
     def low_pass_filter(self, raw_data):
         return raw_data  # Placeholder for actual low-pass filter implementation
 
