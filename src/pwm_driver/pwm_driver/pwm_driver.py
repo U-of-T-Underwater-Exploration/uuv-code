@@ -53,8 +53,8 @@ class PWMDriver(Node):
 
     def command_callback(self, msg):
 
-        command_channel = int(msg.data[0])
-        command_duty = msg.data[1]
+        command_channel = msg.pwm_channelnumber
+        command_duty = msg.pwm_values
 
         if not(8<=command_channel<=15): #check channel in range
             self.get_logger().error('PWM channel out of range 8-15')
