@@ -14,8 +14,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ThrustersPWM.msg"
- )
+  "msg/ThrustersPWM.msg", "msg/CommandPWM.msg"
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
