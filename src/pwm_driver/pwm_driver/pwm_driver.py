@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from pwm_msg.msg import CommandPWM
 from pwm_msg.msg import ThrustersPWM
 from std_msgs.msg import Float32MultiArray
 import bluerobotics_navigator as navigator
@@ -16,7 +17,7 @@ class PWMDriver(Node):
         
         self.get_logger().info('PWM Driver Node has been started.')
         self.thrusters_sub = self.create_subscription(Float32MultiArray, '/pwm/thrusters', self.thrusters_callback, 10)
-        self.command_sub = self.create_subscription(Float32MultiArray, '/pwm/command', seelf.command_callback, 10)
+        self.command_sub = self.create_subscription(CommandPWM, '/pwm/command', self.command_callback, 10)
         
         self.pwm_pub = self.create_publisher(ThrustersPWM, '/pwm/generated', 10)
 
@@ -51,9 +52,6 @@ class PWMDriver(Node):
         self.publish_pwm()
 
     def command_callback(self, msg):
-        if len(msg.data)!=2: #check format
-            self.get_logger().error('/pwm/command needs length 2')
-            return
 
         command_channel = int(msg.data[0])
         command_duty = msg.data[1]
