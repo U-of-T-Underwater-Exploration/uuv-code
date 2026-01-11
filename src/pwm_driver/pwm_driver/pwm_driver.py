@@ -44,7 +44,7 @@ class PWMDriver(Node):
             self.pwm_values[i] = duty
 
         try:
-            self.set_pwm_thruster_channels(self.pwm_values)
+            self.set_pwm_thruster_channels(self.pwm_values[:8])
             pass
         except Exception as e:
             self.get_logger().info(f'Bluenavigator error: {e}')
