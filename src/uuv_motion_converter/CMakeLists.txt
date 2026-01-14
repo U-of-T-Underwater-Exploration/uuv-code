@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(uuv_thruster_driver)
+project(uuv_motion_converter)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -16,8 +16,16 @@ find_package(std_msgs REQUIRED)
 add_executable(thruster_driver_node src/thruster_driver.cpp)
 ament_target_dependencies(thruster_driver_node rclcpp std_msgs)
 
+add_executable(motion_converter_node src/motion_converter.cpp)
+ament_target_dependencies(motion_converter_node rclcpp std_msgs)
+target_include_directories(motion_converter_node PRIVATE ${PROJECT_SOURCE_DIR}/../extern/eigen)
+
 install(TARGETS
   thruster_driver_node
+  DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS
+  motion_converter_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
