@@ -18,7 +18,7 @@ class ImuPublisher(Node):
         super().__init__('imu_publisher')
         self.rawDataPublisher_ = self.create_publisher(Imu, 'imu/data_raw', 10)
         self.dataPublisher = self.create_publisher(Imu, 'imu/data', 10)
-        self.declare_parameter('timer_period', 0.2)
+        self.declare_parameter('timer_period', 0.5)  # seconds
 
         self.time_ = time.time()
         
