@@ -7,6 +7,7 @@ except Exception:
 import yaml
 import os
 import time 
+import math
 
 from sensor_msgs.msg import Imu
 from builtin_interfaces.msg import Time
@@ -19,6 +20,7 @@ class ImuPublisher(Node):
         self.rawDataPublisher_ = self.create_publisher(Imu, 'imu/data_raw', 10)
         self.dataPublisher = self.create_publisher(Imu, 'imu/data', 10)
         self.declare_parameter('timer_period', 0.5)  # seconds
+        self.declare_parameter('cutoff_frequency', 2.0)  # Hz
 
         self.time_ = time.time()
         
@@ -28,7 +30,25 @@ class ImuPublisher(Node):
         try: navigator.init()
         except Exception as err:
             self.get_logger().error(str(err))
+            
+        #Filter parameters
+        self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
+        self.get_logger().info('Cutoff frequency set to: %.3f Hz' % self.cutoff_frequency)
+        self.sample_frequency = 1.0 / timer_period
+        self.get_logger().info('Sample frequency set to: %.3f Hz' % self.sample_frequency)
+        
+        self.b0 = 0.0
+        self.b1 = 0.0
+        self.a1 = 0.0
+        self.calculate_filter_coefficients()
+        self.get_logger().info('Filter coefficients calculated: b0=%.3f, b1=%.3f, a1=%.3f' % (self.b0, self.b1, self.a1))
+        
+        self.prev_raw_data = Imu()
+        self.prev_data = Imu()
 
+        self.prev_raw_data = self.set_default_values(self.prev_raw_data)
+        self.prev_data = self.set_default_values(self.prev_data)
+        self.get_logger().info('Previous data initialized to zero values.')
 
         self.timer = self.create_timer(timer_period, self.timer_callback)   
 
@@ -74,7 +94,33 @@ class ImuPublisher(Node):
         self.dataPublisher.publish(data)
         
     def low_pass_filter(self, raw_data):
-        return raw_data  # Placeholder for actual low-pass filter implementation
+        data = Imu()
+        data.linear_acceleration.x = self.low_pass_filter_single_axis(raw_data.linear_acceleration.x,
+                                                                     self.prev_raw_data.linear_acceleration.x,
+                                                                     self.prev_data.linear_acceleration.x)
+        data.linear_acceleration.y = self.low_pass_filter_single_axis(raw_data.linear_acceleration.y,
+                                                                     self.prev_raw_data.linear_acceleration.y,
+                                                                     self.prev_data.linear_acceleration.y)
+        data.linear_acceleration.z = self.low_pass_filter_single_axis(raw_data.linear_acceleration.z,
+                                                                     self.prev_raw_data.linear_acceleration.z,
+                                                                     self.prev_data.linear_acceleration.z)
+        data.angular_velocity.x = self.low_pass_filter_single_axis(raw_data.angular_velocity.x,
+                                                                  self.prev_raw_data.angular_velocity.x,
+                                                                  self.prev_data.angular_velocity.x)
+        data.angular_velocity.y = self.low_pass_filter_single_axis(raw_data.angular_velocity.y,
+                                                                  self.prev_raw_data.angular_velocity.y,
+                                                                  self.prev_data.angular_velocity.y)   
+        data.angular_velocity.z = self.low_pass_filter_single_axis(raw_data.angular_velocity.z,
+                                                                  self.prev_raw_data.angular_velocity.z,
+                                                                  self.prev_data.angular_velocity.z)     
+        self.prev_raw_data = raw_data
+        self.prev_data = data
+        
+        return data
+    
+    def low_pass_filter_single_axis(self, raw_value, prev_raw_value, prev_value):
+        value = self.b0 * raw_value + self.b1 * prev_raw_value - self.a1 * prev_value
+        return value
     
     def set_header(self, data, frame_id, sec, nanosec):
         data.header.frame_id = frame_id
@@ -100,6 +146,13 @@ class ImuPublisher(Node):
         data.angular_velocity.z = gyro.z
         return data
 
+    def calculate_filter_coefficients(self):
+        K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        self.b0 = K / (1 + K)
+        self.b1 = self.b0
+        self.a1 = (K - 1) / (1 + K)
+   
+  
 def main(args=None):
     rclpy.init(args=args)
 
