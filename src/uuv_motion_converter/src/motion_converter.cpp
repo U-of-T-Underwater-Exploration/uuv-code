@@ -18,23 +18,15 @@ struct Thruster
         Eigen::VectorXd r_motor_dir;
     };
 
-    //Creating vector for thrusters to be able access each thruster later on
-Thruster thruster_0;
-Thruster thruster_1;
-Thruster thruster_2;
-Thruster thruster_3;
-Thruster thruster_4;
-Thruster thruster_5;
-Thruster thruster_6;
-Thruster thruster_7;
-std::vector<Thruster> thrusters = {thruster_0, thruster_1, thruster_2, thruster_3, thruster_4, thruster_5, thruster_6, thruster_7};
+//Creating vector for thrusters to be able access each thruster later on
+std::array<Thruster, 8> thrusters;
 
 class MotionConverter : public rclcpp::Node
 {
     public:
 
         // Function to handle reading YAML file and storing parameters for each thruster
-        void read_params(Thruster thruster, std::string thruster_name){
+        void read_params(Thruster & thruster, std::string thruster_name){
             std::string id = thruster_name + ".id";
             std::string fwd_thst = thruster_name + ".max_forward_thrust";
             std::string rev_thst = thruster_name + ".max_reverse_thrust";
@@ -59,7 +51,7 @@ class MotionConverter : public rclcpp::Node
             std::vector<double> offset_vec = this->get_parameter(motor_offset).as_double_array();
             std::vector<double> motor_vec = this->get_parameter(motor_dir).as_double_array();
             thruster.p_motor_offset = Eigen::Map<Eigen::VectorXd>(offset_vec.data(), offset_vec.size());
-            thruster.r_motor_dir = Eigen::Map<Eigen::VectorXd>(motor_vec.data(), motor_vec.size());         
+            thruster.r_motor_dir = Eigen::Map<Eigen::VectorXd>(motor_vec.data(), motor_vec.size());        
         }
 
 
