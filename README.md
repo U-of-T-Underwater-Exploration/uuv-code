@@ -1,2 +1,8 @@
 # uuv-code
  UTUX Onboard UUV code
+
+Sourcing:
+source src/install/setup.bash
+
+Launching:
+ros2 launch uuv_baro_ext external_barometer_launch.py
