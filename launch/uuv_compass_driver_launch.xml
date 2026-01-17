@@ -1,5 +1,0 @@
-<launch>
-  <node pkg="uuv_compass_driver" exec="uuv_compass_driver_node" name="uuv_compass_driver" namespace="uuv_compass_driver">
-    <!-- <param name="pwm_frequency_hz" value="50"/> -->
-  </node>
-</launch>

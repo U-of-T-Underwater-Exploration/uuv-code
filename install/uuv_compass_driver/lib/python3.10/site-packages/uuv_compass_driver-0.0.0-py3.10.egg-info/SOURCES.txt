@@ -9,10 +9,11 @@ setup.py
 ../build/uuv_compass_driver/uuv_compass_driver.egg-info/requires.txt
 ../build/uuv_compass_driver/uuv_compass_driver.egg-info/top_level.txt
 ../build/uuv_compass_driver/uuv_compass_driver.egg-info/zip-safe
+config/compass_driver_params.yaml
+launch/compass_driver_launch.py
 resource/uuv_compass_driver
 test/test_copyright.py
 test/test_flake8.py
 test/test_pep257.py
 uuv_compass_driver/__init__.py
-uuv_compass_driver/compass_driver_corrected_node.py
 uuv_compass_driver/compass_driver_node.py
