@@ -157,7 +157,7 @@ class CompassPublisher(Node):
         data.magnetic_field.z = 0.0
         return data
     
-    def set_data(self, data, accel, gyro):
+    def set_data(self, data, magfield):
         data.magnetic_field.x = accel.x
         data.magnetic_field.y = accel.y
         data.magnetic_field.z = accel.z
