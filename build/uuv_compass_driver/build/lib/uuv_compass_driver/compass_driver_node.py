@@ -7,6 +7,7 @@ except Exception:
 import yaml
 import os
 import time 
+import math
 
 from sensor_msgs.msg import MagneticField
 from builtin_interfaces.msg import Time
@@ -32,7 +33,7 @@ class CompassPublisher(Node):
         #timer_period = 0.1 #config['timer_period']
         #timer_period = config['timer_period']
         timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
-        self.get_logger().info('Timer period set to: %.3f seconds' % timer_period)
+        self.get_logger().info('Timer period set to: %.3f seconds' % self.timer_period)
 
 
         try: navigator.init()
@@ -43,9 +44,9 @@ class CompassPublisher(Node):
         #Filter parameters
 
         self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
-        self.get_logger().info('Cutoff frequency set to: %.3f seconds' % cutoff_frequency)
+        self.get_logger().info('Cutoff frequency set to: %.3f seconds' % self.cutoff_frequency)
         self.sample_frequency = 1.0 / timer_period
-        self.get_logger().info('Sample frequency set to: %.3f seconds' % sample_frequency)
+        self.get_logger().info('Sample frequency set to: %.3f seconds' % self.sample_frequency)
 
         self.b0 = 0.0
         self.b1 = 0.0
@@ -158,9 +159,9 @@ class CompassPublisher(Node):
         return data
     
     def set_data(self, data, magfield):
-        data.magnetic_field.x = accel.x
-        data.magnetic_field.y = accel.y
-        data.magnetic_field.z = accel.z
+        data.magnetic_field.x = magfield.x
+        data.magnetic_field.y = magfield.y
+        data.magnetic_field.z = magfield.z
         return data
 
     def calculate_filter_coefficients(self):
