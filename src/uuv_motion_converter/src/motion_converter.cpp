@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <string>
+#include <cmath>
 
 // Struct for storing thruster info
 struct Thruster
@@ -63,7 +64,7 @@ class MotionConverter : public rclcpp::Node
             //     "/motion/command", 10, std::bind(&MotionConverter::insert_callback_function_name_here, this, std::placeholders::_1));
 
             // // Publish to '/thruster/command' 
-            // thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
+            thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
             
             // Reading and storing parameters for each thruster
             for (int i = 0; i < thrusters.size(); i++){
@@ -82,9 +83,49 @@ class MotionConverter : public rclcpp::Node
     //     // thrust_vec =  
     // }
 
+    void publish_motor_percentage(std::array<float, 8> motor_thrust_vec){
+        auto thruster_cmd = std_msgs::msg::Float32MultiArray();
+        thruster_cmd.data.resize(8);
+        
+        float factor = 1.0f;
+        for (int i = 0; i < 8; i++){
+            factor = std::max(factor, normalize_factor(motor_thrust_vec[i], thrusters[i]));
+        }
+
+        // Mapping motor thrusts to duty cycles
+        for(int i = 0; i < 8; i++){
+            // normalizing thrust
+            float normalized_thrust = motor_thrust_vec[i] / factor;
+            float motor_percentage = thrust_mapping(normalized_thrust, thrusters[i]);
+            
+            // Check if duty cycle is out of bounds and clamp
+            if (motor_percentage < -1.0f || motor_percentage > 1.0f) {
+                RCLCPP_ERROR(this->get_logger(), "Thruster %d duty cycle out of bounds: %.3f. Clamping to [-1, 1]", i, motor_percentage);
+                motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
+            }
+            
+            thruster_cmd.data[i] = motor_percentage;
+        }
+
+        thruster_cmd_pub_->publish(thruster_cmd);
+    }
+
+    // Linear mapping from thrust to thrust_percentage
+    float thrust_mapping(float thrust, const Thruster& thruster){
+        if (thrust > 0.0f) {
+            return (thrust / thruster.max_forward_thrust);
+        }
+        else {
+            return (thrust / thruster.max_reverse_thrust);
+        }
+    }
+
+    float normalize_factor(float thrust, const Thruster& thruster){
+        return thrust > 0.0f ? thrust / thruster.max_forward_thrust: (-thrust) / thruster.max_reverse_thrust;
+    }
 
     // rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr motion_cmd_sub_;
-    // rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr thruster_cmd_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr thruster_cmd_pub_;
     };
 
 int main(int argc, char * argv[])
