@@ -14,8 +14,7 @@ class ADCPublisher(Node):
         self.adc = float(0)
 
         # Get Parameters
-        self.declare_parameter("publish_rate", 50)
-        self.declare_parameter("frame_id", 'fc_link')
+        self.declare_parameter("publish_rate", 50.0)
         self.timer_period = 1/self.get_parameter("publish_rate").get_parameter_value().double_value
 
         # Create Publisher & timer
@@ -24,12 +23,12 @@ class ADCPublisher(Node):
 
         # Initialize Navigator
         navigator.init()
-        adcVals = navigator.read_adc_all()
 
     def timer_callback(self):
         message = Float32MultiArray()
 
-        message.data = self.adcVals
+        adcVals = navigator.read_adc_all()
+        message.data = adcVals
 
         self.publisher_.publish(message)
 

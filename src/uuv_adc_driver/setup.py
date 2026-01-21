@@ -27,7 +27,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'adc_publisher = uuv_adc_driver_py.adc_driver:main',
+            'adc_publisher = uuv_adc_driver.adc_driver:main',
         ],
     },
 )
