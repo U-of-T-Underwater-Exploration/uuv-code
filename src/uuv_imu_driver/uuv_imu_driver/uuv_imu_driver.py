@@ -119,7 +119,7 @@ class ImuPublisher(Node):
         return data
     
     def low_pass_filter_single_axis(self, raw_value, prev_raw_value, prev_value):
-        value = self.b0 * raw_value + self.b1 * prev_raw_value - self.a1 * prev_value
+        value = self.b0 * raw_value + self.b1 * prev_raw_value + self.a1 * prev_value
         return value
     
     def set_header(self, data, frame_id, sec, nanosec):
