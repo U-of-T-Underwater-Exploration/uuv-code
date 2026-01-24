@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <algorithm>
+#include <array>
 
 // Struct for storing thruster info
 struct Thruster
@@ -73,26 +75,7 @@ class MotionConverter : public rclcpp::Node
                 read_params(thrusters[i], thruster_name);
             }
 
-
-            Eigen::MatrixXf motion_converter_matrix(8,6);
-            // Fill allocation_matrix based on thruster configurations
-            for (int i = 0; i < thrusters.size(); i++){
-                Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
-                Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
-
-                // Force components
-                motion_converter_matrix(i, 0) = r_motor_dir(0); // Surge
-                motion_converter_matrix(i, 1) = r_motor_dir(1); // Sway
-                motion_converter_matrix(i, 2) = r_motor_dir(2); // Heave
-
-                // Moment components
-                Eigen::Vector3f moment = p_motor_offset.cross(r_motor_dir);
-                motion_converter_matrix(i, 3) = moment(0); // Roll
-                motion_converter_matrix(i, 4) = moment(1); // Pitch
-                motion_converter_matrix(i, 5) = moment(2); // Yaw
-            }
-
-            motion_converter_matrix_pinv = get_pseudo_inverse(motion_converter_matrix);
+            get_pseudo_inverse();
         }
     private:
 
@@ -101,18 +84,40 @@ class MotionConverter : public rclcpp::Node
 
     //Call back function: Converts joystick inputs into motor thrust vector 
     void insert_callback_function_name_here(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
-
+        // TODO: Implement callback logic
+        // Suppress unused parameter warning
+        (void)msg;
+        
         Eigen::VectorXf motion_cmd(6);
-
+        // TODO: Extract motion commands from msg
 
         Eigen::VectorXf wrench(6);
+        // TODO: Convert motion commands to wrench
 
         thrust_vec =  motion_converter_matrix_pinv * wrench;
     }
 
-    Eigen::MatrixXf get_pseudo_inverse(Eigen::MatrixXf A){
-        Eigen::MatrixXf A_pinv = A.completeOrthogonalDecomposition().pseudoInverse();
-        return A_pinv;
+    void get_pseudo_inverse(){
+
+        Eigen::MatrixXf motion_converter_matrix(8,6);
+        // Fill allocation_matrix based on thruster configurations
+        for (int i = 0; i < thrusters.size(); i++){
+            Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
+            Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
+
+            // Force components
+            motion_converter_matrix(i, 0) = r_motor_dir(0); // Surge
+            motion_converter_matrix(i, 1) = r_motor_dir(1); // Sway
+            motion_converter_matrix(i, 2) = r_motor_dir(2); // Heave
+
+            // Moment components
+            Eigen::Vector3f moment = p_motor_offset.cross(r_motor_dir);
+            motion_converter_matrix(i, 3) = moment(0); // Roll
+            motion_converter_matrix(i, 4) = moment(1); // Pitch
+            motion_converter_matrix(i, 5) = moment(2); // Yaw
+        }
+
+        motion_converter_matrix_pinv = motion_converter_matrix.completeOrthogonalDecomposition().pseudoInverse();
     }
 
 
@@ -146,15 +151,35 @@ class MotionConverter : public rclcpp::Node
     // Linear mapping from thrust to thrust_percentage
     float thrust_mapping(float thrust, const Thruster& thruster){
         if (thrust > 0.0f) {
-            return (thrust / thruster.max_forward_thrust);
+            if (thruster.max_forward_thrust == 0.0) {
+                RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);
+                return 0.0f;
+            }
+            return (thrust / static_cast<float>(thruster.max_forward_thrust));
         }
         else {
-            return (thrust / thruster.max_reverse_thrust);
+            if (thruster.max_reverse_thrust == 0.0) {
+                RCLCPP_WARN(this->get_logger(), "Max reverse thrust is zero for thruster %d", thruster.id);
+                return 0.0f;
+            }
+            return (thrust / static_cast<float>(thruster.max_reverse_thrust));
         }
     }
 
     float normalize_factor(float thrust, const Thruster& thruster){
-        return thrust > 0.0f ? thrust / thruster.max_forward_thrust: (-thrust) / thruster.max_reverse_thrust;
+        if (thrust > 0.0f) {
+            if (thruster.max_forward_thrust == 0.0) {
+                RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);
+                return 1.0f;
+            }
+            return thrust / static_cast<float>(thruster.max_forward_thrust);
+        } else {
+            if (thruster.max_reverse_thrust == 0.0) {
+                RCLCPP_WARN(this->get_logger(), "Max reverse thrust is zero for thruster %d", thruster.id);
+                return 1.0f;
+            }
+            return (-thrust) / static_cast<float>(thruster.max_reverse_thrust);
+        }
     }
 
     // rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr motion_cmd_sub_;
