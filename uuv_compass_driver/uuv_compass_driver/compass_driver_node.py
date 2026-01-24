@@ -24,28 +24,19 @@ class CompassPublisher(Node):
 
         self.time_ = time.time()
         
-        #From IMU template
-        # tbd: change the path to config file to be dynamic
-        # with open("/home/jeff/Jeff/UTUX/2025-2026/Template/sensor-compass/uuv-code/uuv_compass_driver/uuv_compass_driver/uuv_compass_driver.yml") as file:
-        #     global config 
-        #     config = yaml.safe_load(file)
-        
-        #timer_period = 0.1 #config['timer_period']
-        #timer_period = config['timer_period']
-        timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
+        self.timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
         self.get_logger().info('Timer period set to: %.3f seconds' % self.timer_period)
 
 
         try: navigator.init()
         except Exception as err:
-            #self.get_logger().error('Failed to initialize connection to Navigator')
             self.get_logger().error(str(err))
 
         #Filter parameters
 
         self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
         self.get_logger().info('Cutoff frequency set to: %.3f seconds' % self.cutoff_frequency)
-        self.sample_frequency = 1.0 / timer_period
+        self.sample_frequency = 1.0 / self.timer_period
         self.get_logger().info('Sample frequency set to: %.3f seconds' % self.sample_frequency)
 
         self.b0 = 0.0
@@ -61,7 +52,7 @@ class CompassPublisher(Node):
         self.prev_data = self.set_default_values(self.prev_data)
         self.get_logger().info('Previous data initialized to zero values.')
 
-        self.timer = self.create_timer(timer_period, self.timer_callback)   
+        self.timer = self.create_timer(self.timer_period, self.timer_callback)   
 
 
     def timer_callback(self):
@@ -80,44 +71,22 @@ class CompassPublisher(Node):
 
         try: 
             magfield = navigator.read_mag()
-            # gyro = navigator.read_gyro()
         except Exception as err:
-            #self.get_logger().error('Failed to get IMU data from Navigator')
             self.get_logger().error(str(err))
 
         if magfield is not None:
-            # raw_data.magnetic_field.x = magfield.x
-            # raw_data.magnetic_field.y = magfield.y
-            # raw_data.magnetic_field.z = magfield.z
-
             raw_data = self.set_data(raw_data,magfield)
-
-            # raw_data.angular_velocity.x = gyro.x
-            # raw_data.angular_velocity.y = gyro.y
-            # raw_data.angular_velocity.z = gyro.z
 
             data = self.low_pass_filter(raw_data)
 
             self.get_logger().info('Publishing raw data: MagField[%.3f, %.3f, %.3f]' %
                                    (magfield.x, magfield.y, magfield.z))
         else:
-            
-            # raw_data.magnetic_field.x = data.magnetic_field.x = float(0)
-            # raw_data.magnetic_field.y = data.magnetic_field.y = float(0)
-            # raw_data.magnetic_field.z = data.magnetic_field.z = float(0)
-            
             raw_data = self.set_default_values(raw_data)
             data = self.set_default_values(data)
 
             self.get_logger().info('Publishing default values: MagField[0, 0, 0]')
             
-        # raw_data.header.frame_id = 'compass_link'
-        # raw_data.header.stamp.nanosec = nanosec
-        # raw_data.header.stamp.sec = sec
-
-        # data.header.frame_id = 'compass_link'
-        # data.header.stamp.nanosec = nanosec
-        # data.header.stamp.sec = sec
 
         raw_data = self.set_header(raw_data, 'compass_link', sec, nanosec)
         data = self.set_header(data, 'compass_link', sec, nanosec)
