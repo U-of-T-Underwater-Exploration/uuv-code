@@ -72,16 +72,49 @@ class MotionConverter : public rclcpp::Node
                 thruster_name += std::to_string(i);
                 read_params(thrusters[i], thruster_name);
             }
+
+
+            Eigen::MatrixXf motion_converter_matrix(8,6);
+            // Fill allocation_matrix based on thruster configurations
+            for (int i = 0; i < thrusters.size(); i++){
+                Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
+                Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
+
+                // Force components
+                motion_converter_matrix(i, 0) = r_motor_dir(0); // Surge
+                motion_converter_matrix(i, 1) = r_motor_dir(1); // Sway
+                motion_converter_matrix(i, 2) = r_motor_dir(2); // Heave
+
+                // Moment components
+                Eigen::Vector3f moment = p_motor_offset.cross(r_motor_dir);
+                motion_converter_matrix(i, 3) = moment(0); // Roll
+                motion_converter_matrix(i, 4) = moment(1); // Pitch
+                motion_converter_matrix(i, 5) = moment(2); // Yaw
+            }
+
+            motion_converter_matrix_pinv = get_pseudo_inverse(motion_converter_matrix);
         }
     private:
 
-    // Eigen::VectorXf thrust_vec;
+    Eigen::VectorXf thrust_vec;
+    Eigen::MatrixXf motion_converter_matrix_pinv;
 
-    // // Call back function: Converts joystick inputs into motor thrust vector 
-    // void insert_callback_function_name_here(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
+    //Call back function: Converts joystick inputs into motor thrust vector 
+    void insert_callback_function_name_here(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
 
-    //     // thrust_vec =  
-    // }
+        Eigen::VectorXf motion_cmd(6);
+
+
+        Eigen::VectorXf wrench(6);
+
+        thrust_vec =  motion_converter_matrix_pinv * wrench;
+    }
+
+    Eigen::MatrixXf get_pseudo_inverse(Eigen::MatrixXf A){
+        Eigen::MatrixXf A_pinv = A.completeOrthogonalDecomposition().pseudoInverse();
+        return A_pinv;
+    }
+
 
     void publish_motor_percentage(std::array<float, 8> motor_thrust_vec){
         auto thruster_cmd = std_msgs::msg::Float32MultiArray();
