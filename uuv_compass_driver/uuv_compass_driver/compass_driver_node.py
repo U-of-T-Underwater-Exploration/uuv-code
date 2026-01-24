@@ -79,7 +79,7 @@ class CompassPublisher(Node):
 
             data = self.low_pass_filter(raw_data)
 
-            self.get_logger().info('Publishing raw data: MagField[%.3f, %.3f, %.3f]' %
+            self.get_logger().info('Publishing data: MagField[%.3f, %.3f, %.3f]' %
                                    (magfield.x, magfield.y, magfield.z))
         else:
             raw_data = self.set_default_values(raw_data)
