@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'joystick_hal = joystick_hal.joystick_node:main',
+            'joystick_hal = joystick_hal.input_node:main',
         ],
     },
 )
