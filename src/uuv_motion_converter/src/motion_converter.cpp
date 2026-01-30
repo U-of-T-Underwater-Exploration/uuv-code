@@ -60,10 +60,10 @@ class MotionConverter : public rclcpp::Node
 
         MotionConverter()
         : Node("motion_converter_node")
-        {
+        {   
             // // Subscribe to 'motion/command' joystick inputs
-            // motion_cmd_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-            //     "/motion/command", 10, std::bind(&MotionConverter::insert_callback_function_name_here, this, std::placeholders::_1));
+            motion_cmd_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+                "/motion/command", 10, std::bind(&MotionConverter::get_wrench_callback, this, std::placeholders::_1));
 
             // // Publish to '/thruster/command' 
             thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
@@ -83,13 +83,16 @@ class MotionConverter : public rclcpp::Node
     Eigen::MatrixXf motion_converter_matrix_pinv;
 
     //Call back function: Converts joystick inputs into motor thrust vector 
-    void insert_callback_function_name_here(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
+    void get_wrench_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
         // TODO: Implement callback logic
         // Suppress unused parameter warning
-        (void)msg;
+        //(void)msg;
         
         Eigen::VectorXf motion_cmd(6);
         // TODO: Extract motion commands from msg
+        for(int i=0; i<6; i++){
+            motion_cmd(i) = msg->data[i];
+        }
 
         Eigen::VectorXf wrench(6);
         // TODO: Convert motion commands to wrench
