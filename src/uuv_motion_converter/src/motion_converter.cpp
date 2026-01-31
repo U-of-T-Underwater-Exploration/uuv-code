@@ -116,13 +116,14 @@ class MotionConverter : public rclcpp::Node
             max_heave_force += std::abs(r_motor_dir(2)*max_thrust);
 
             //cross product of position and force direction is moment
-            Eigen::Vector3d moment = motor_offset.cross(motor_dir);
+            Eigen::Vector3f moment = p_motor_offset.cross(r_motor_dir);
 
             //scale moments by the max_thrust
             max_roll_moment += std::abs(moment(0)*max_thrust);
             max_pitch_moment += std::abs(moment(1)*max_thrust);
             max_yaw_moment += std::abs(moment(2)*max_thrust);
 
+        }
     }
 
     //Call back function: Converts joystick inputs into motor thrust vector 
@@ -236,7 +237,7 @@ class MotionConverter : public rclcpp::Node
         }
     }
 
-    // rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr motion_cmd_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr motion_cmd_sub_;
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr thruster_cmd_pub_;
     };
 
