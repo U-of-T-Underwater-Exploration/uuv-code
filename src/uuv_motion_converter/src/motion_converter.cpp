@@ -76,17 +76,49 @@ class MotionConverter : public rclcpp::Node
             }
 
             get_pseudo_inverse();
+
+            find_max_wrench(); //call find_max_wrench to find max wrench
         }
+
     private:
 
     Eigen::VectorXf thrust_vec;
     Eigen::MatrixXf motion_converter_matrix_pinv;
 
+    float max_surge_force;
+    float max_sway_force;
+    float max_heave_force;
+    float max_roll_moment;
+    float max_pitch_moment;
+    float max_yaw_moment;
+
+    void find_max_wrench() {
+        max_surge_force = 0.0;
+        max_sway_force = 0.0;
+        max_heave_force = 0.0;
+        max_roll_moment = 0.0;
+        max_pitch_moment = 0.0;
+        max_yaw_moment = 0.0;
+        
+        for (int i = 0; i < thrusters.size(); i++){
+            Eigen::Vector3d r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
+            Eigen::Vector3d p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
+
+            float max_thrust = static_cast<float>(thrusters[i].max_forward_thrust); //find max forward thrust for each thruster
+
+
+        //TODO: ADD IN THE MATH HERE TO FIND MAX_WRENCH
+
+
+
+
+    }
+
     //Call back function: Converts joystick inputs into motor thrust vector 
     void get_wrench_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
         // TODO: Implement callback logic
         // Suppress unused parameter warning
-        //(void)msg;
+        (void)msg;
         
         Eigen::VectorXf motion_cmd(6);
         // TODO: Extract motion commands from msg
@@ -96,6 +128,14 @@ class MotionConverter : public rclcpp::Node
 
         Eigen::VectorXf wrench(6);
         // TODO: Convert motion commands to wrench
+        //scale each max force or moment by their percent
+        wrench(0) = motion_cmd(0)*max_surge_force;
+        wrench(1) = motion_cmd(1)*max_sway_force;
+        wrench(2) = motion_cmd(2)*max_heave_force;
+        wrench(3) = motion_cmd(3)*max_roll_moment;
+        wrench(4) = motion_cmd(4)*max_pitch_moment;
+        wrench(5) = motion_cmd(5)*max_yaw_moment;
+
 
         thrust_vec =  motion_converter_matrix_pinv * wrench;
     }
