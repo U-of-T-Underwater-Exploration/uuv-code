@@ -93,6 +93,7 @@ class MotionConverter : public rclcpp::Node
     float max_yaw_moment;
 
     void find_max_wrench() {
+        //set them all and 0 first
         max_surge_force = 0.0;
         max_sway_force = 0.0;
         max_heave_force = 0.0;
@@ -101,16 +102,26 @@ class MotionConverter : public rclcpp::Node
         max_yaw_moment = 0.0;
         
         for (int i = 0; i < thrusters.size(); i++){
-            Eigen::Vector3d r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
-            Eigen::Vector3d p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
+            //TODO: Math to find max wrench here
 
-            float max_thrust = static_cast<float>(thrusters[i].max_forward_thrust); //find max forward thrust for each thruster
+            Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
+            Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
 
+            //find max forward thrust for each thruster(in YAML, the max_reverse_thrust is just -max_forward_thrust)
+            float max_thrust = static_cast<float>(thrusters[i].max_forward_thrust);
 
-        //TODO: ADD IN THE MATH HERE TO FIND MAX_WRENCH
+            //mult max_thrust by the p_motor_offset and add to each max force
+            max_surge_force += std::abs(r_motor_dir(0)*max_thrust);
+            max_sway_force += std::abs(r_motor_dir(1)*max_thrust);
+            max_heave_force += std::abs(r_motor_dir(2)*max_thrust);
 
+            //cross product of position and force direction is moment
+            Eigen::Vector3d moment = motor_offset.cross(motor_dir);
 
-
+            //scale moments by the max_thrust
+            max_roll_moment += std::abs(moment(0)*max_thrust);
+            max_pitch_moment += std::abs(moment(1)*max_thrust);
+            max_yaw_moment += std::abs(moment(2)*max_thrust);
 
     }
 
