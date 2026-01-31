@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from joystick_hal.msg import UUVCommand, ActionCommand
+from uuv_joystick_hal.msg import UUVCommand, ActionCommand
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 
 
