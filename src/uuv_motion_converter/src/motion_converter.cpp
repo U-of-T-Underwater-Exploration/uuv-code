@@ -150,6 +150,12 @@ class MotionConverter : public rclcpp::Node
 
 
         thrust_vec =  motion_converter_matrix_pinv * wrench;
+
+        std::array<float, 8> motor_thrust_vec;
+        for (int i = 0; i < 8; i++){
+            motor_thrust_vec[i] = thrust_vec(i);
+        }
+        publish_motor_percentage(motor_thrust_vec);
     }
 
     void get_pseudo_inverse(){
