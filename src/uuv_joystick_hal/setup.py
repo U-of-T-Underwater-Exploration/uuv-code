@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'joystick_hal'
+package_name = 'uuv_joystick_hal'
 
 setup(
     name=package_name,
