@@ -147,7 +147,12 @@ class ImuPublisher(Node):
         return data
 
     def calculate_filter_coefficients(self):
-        K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        # K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        # self.b0 = K / (1 + K)
+        # self.b1 = self.b0
+        # self.a1 = (K - 1) / (1 + K)
+
+        K = (self.cutoff_frequency / self.sample_frequency)/2
         self.b0 = K / (1 + K)
         self.b1 = self.b0
         self.a1 = (K - 1) / (1 + K)
