@@ -149,12 +149,20 @@ class MotionConverter : public rclcpp::Node
         wrench(5) = motion_cmd(5)*max_yaw_moment;
 
 
+        RCLCPP_INFO(this->get_logger(), "Wrench - Surge: %.3f, Sway: %.3f, Heave: %.3f, Roll: %.3f, Pitch: %.3f, Yaw: %.3f",
+            wrench(0), wrench(1), wrench(2), wrench(3), wrench(4), wrench(5));
+        
         thrust_vec =  motion_converter_matrix_pinv * wrench;
 
         std::array<float, 8> motor_thrust_vec;
         for (int i = 0; i < 8; i++){
             motor_thrust_vec[i] = thrust_vec(i);
         }
+
+        RCLCPP_INFO(this->get_logger(), "Motor Thrusts - T0: %.3f, T1: %.3f, T2: %.3f, T3: %.3f, T4: %.3f, T5: %.3f, T6: %.3f, T7: %.3f",
+            motor_thrust_vec[0], motor_thrust_vec[1], motor_thrust_vec[2], motor_thrust_vec[3],
+            motor_thrust_vec[4], motor_thrust_vec[5], motor_thrust_vec[6], motor_thrust_vec[7]);
+        
         publish_motor_percentage(motor_thrust_vec);
     }
 
@@ -223,7 +231,7 @@ class MotionConverter : public rclcpp::Node
                 RCLCPP_WARN(this->get_logger(), "Max reverse thrust is zero for thruster %d", thruster.id);
                 return 0.0f;
             }
-            return (thrust / static_cast<float>(thruster.max_reverse_thrust));
+            return (thrust / static_cast<float>(-thruster.max_reverse_thrust));
         }
     }
 
@@ -239,7 +247,7 @@ class MotionConverter : public rclcpp::Node
                 RCLCPP_WARN(this->get_logger(), "Max reverse thrust is zero for thruster %d", thruster.id);
                 return 1.0f;
             }
-            return (-thrust) / static_cast<float>(thruster.max_reverse_thrust);
+            return (thrust) / static_cast<float>(thruster.max_reverse_thrust);
         }
     }
 
