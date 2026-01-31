@@ -69,7 +69,7 @@ class MotionConverter : public rclcpp::Node
             thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
             
             // Reading and storing parameters for each thruster
-            for (int i = 0; i < thrusters.size(); i++){
+            for (int i = 0; i < 8; i++){
                 std::string thruster_name = "thrusters.thruster_";
                 thruster_name += std::to_string(i);
                 read_params(thrusters[i], thruster_name);
@@ -101,7 +101,7 @@ class MotionConverter : public rclcpp::Node
         max_pitch_moment = 0.0;
         max_yaw_moment = 0.0;
         
-        for (int i = 0; i < thrusters.size(); i++){
+        for (int i = 0; i < 8; i++){
             //TODO: Math to find max wrench here
 
             Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
@@ -150,19 +150,13 @@ class MotionConverter : public rclcpp::Node
 
 
         thrust_vec =  motion_converter_matrix_pinv * wrench;
-
-        std::array<float, 8> motor_thrust_vec;
-        for (int i = 0; i < 8; i++){
-            motor_thrust_vec[i] = thrust_vec(i);
-        }
-        publish_motor_percentage(motor_thrust_vec);
     }
 
     void get_pseudo_inverse(){
 
         Eigen::MatrixXf motion_converter_matrix(8,6);
         // Fill allocation_matrix based on thruster configurations
-        for (int i = 0; i < thrusters.size(); i++){
+        for (int i = 0; i < 8; i++){
             Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
             Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
 
