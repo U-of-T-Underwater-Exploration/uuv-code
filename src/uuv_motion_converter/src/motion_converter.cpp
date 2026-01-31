@@ -69,7 +69,7 @@ class MotionConverter : public rclcpp::Node
             thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
             
             // Reading and storing parameters for each thruster
-            for (int i = 0; i < 8; i++){
+            for (size_t i = 0; i < thrusters.size(); i++){
                 std::string thruster_name = "thrusters.thruster_";
                 thruster_name += std::to_string(i);
                 read_params(thrusters[i], thruster_name);
@@ -154,22 +154,22 @@ class MotionConverter : public rclcpp::Node
 
     void get_pseudo_inverse(){
 
-        Eigen::MatrixXf motion_converter_matrix(8,6);
+        Eigen::MatrixXf motion_converter_matrix(6,8);
         // Fill allocation_matrix based on thruster configurations
-        for (int i = 0; i < 8; i++){
+        for (size_t i = 0; i < thrusters.size(); i++){
             Eigen::Vector3f r_motor_dir = thrusters[i].r_motor_dir.cast<float>();
             Eigen::Vector3f p_motor_offset = thrusters[i].p_motor_offset.cast<float>();
 
             // Force components
-            motion_converter_matrix(i, 0) = r_motor_dir(0); // Surge
-            motion_converter_matrix(i, 1) = r_motor_dir(1); // Sway
-            motion_converter_matrix(i, 2) = r_motor_dir(2); // Heave
+            motion_converter_matrix(0, i) = r_motor_dir(0); // Surge
+            motion_converter_matrix(1, i) = r_motor_dir(1); // Sway
+            motion_converter_matrix(2, i) = r_motor_dir(2); // Heave
 
             // Moment components
             Eigen::Vector3f moment = p_motor_offset.cross(r_motor_dir);
-            motion_converter_matrix(i, 3) = moment(0); // Roll
-            motion_converter_matrix(i, 4) = moment(1); // Pitch
-            motion_converter_matrix(i, 5) = moment(2); // Yaw
+            motion_converter_matrix(3, i) = moment(0); // Roll
+            motion_converter_matrix(4, i) = moment(1); // Pitch
+            motion_converter_matrix(5, i) = moment(2); // Yaw
         }
 
         motion_converter_matrix_pinv = motion_converter_matrix.completeOrthogonalDecomposition().pseudoInverse();
