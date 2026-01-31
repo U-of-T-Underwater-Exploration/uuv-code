@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from joystick_hal.msg import UUVCommand, ActionCommand
+from uuv_joystick_hal.msg import UUVCommand, ActionCommand
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 
 
@@ -36,22 +36,24 @@ class JoystickHAL(Node):
 
             # Safe axis access
             cmd.surge = msg.axes[1] if len(msg.axes) > 1 else 0.0
-            cmd.sway  = msg.axes[0] if len(msg.axes) > 0 else 0.0
-            cmd.heave = msg.axes[3] if len(msg.axes) > 3 else 0.0
-            cmd.yaw   = msg.axes[2] if len(msg.axes) > 2 else 0.0
-            cmd.roll  = 0.0
-            cmd.pitch = 0.0
+            cmd.roll  = msg.axes[0] if len(msg.axes) > 0 else 0.0
+            cmd.sway = msg.axes[3] if len(msg.axes) > 3 else 0.0
+            cmd.heave = msg.axes[2] if len(msg.axes) > 2 else 0.0
+            cmd.pitch  = msg.axes[4] if len(msg.axes) > 4 else 0.0   
+            cmd.yaw = msg.axes[5] if len(msg.axes) > 5 else 0.0
             cmd.mode  = 0
             
             if not self.prev_buttons:
                 self.prev_buttons = [0] * len(msg.buttons)
-            AXIS_ONLY_BUTTONS = {4, 5}  # Only want the RB/LB to be used as axis not buttons
+            #AXIS_ONLY_BUTTONS = {4, 5}  # Only want the RB/LB to be used as axis not buttons
             #Corresponding # of button bo be confirmed based on joystick use #4 and #5 for now
             
             cmd.actions = []
             for i, pressed in enumerate(msg.buttons):
+                """
                 if i in AXIS_ONLY_BUTTONS:
                     continue
+                """
                 prev = self.prev_buttons[i]
 
                 a = ActionCommand()
