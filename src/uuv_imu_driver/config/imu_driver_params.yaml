@@ -1,4 +1,6 @@
 /imu_driver_node:
   ros__parameters:
     timer_period: 0.1  # seconds
-    cutoff_frequency: 1.0  # Hz
+    cutoff_frequency: 25.0  # Hz
+    coordinate_system_linear: [1 , -1, 1]
+    coordinate_system_angular: [-1, 1, -1]
