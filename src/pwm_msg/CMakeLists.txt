@@ -16,6 +16,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ThrustersPWM.msg"
   "msg/CommandPWM.msg"
+  "msg/ServoPWM.msg"
 )
 
 if(BUILD_TESTING)
