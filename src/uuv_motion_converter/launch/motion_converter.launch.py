@@ -8,6 +8,7 @@ def generate_launch_description():
             package='uuv_motion_converter',
             executable='motion_converter_node',
             name='motion_converter_node',
+            namespace='utux',
             parameters=["src/uuv_motion_converter/config/params.yaml"]
         )
     ])

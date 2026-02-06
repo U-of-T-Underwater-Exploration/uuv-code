@@ -7,5 +7,6 @@ def generate_launch_description():
             package='uuv_motion_converter',
             executable='thruster_driver_node',
             name='thruster_driver',
+            namespace='utux',
         ),
     ])
