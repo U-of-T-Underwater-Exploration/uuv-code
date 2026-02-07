@@ -21,6 +21,7 @@ class CompassPublisher(Node):
         self.dataPublisher = self.create_publisher(MagneticField, 'compass/data', 10)
         self.declare_parameter('timer_period', 0.5) # Seconds, should be decided by yaml
         self.declare_parameter('cutoff_frequency', 2.0) # Hz
+        self.declare_parameter('coordinate_frame', [1,1,1])
 
         self.time_ = time.time()
         
@@ -34,6 +35,7 @@ class CompassPublisher(Node):
 
         #Filter parameters
 
+        self.coordinate_frame = list(self.get_parameter('coordinate_frame').value)
         self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
         self.get_logger().info('Cutoff frequency set to: %.3f seconds' % self.cutoff_frequency)
         self.sample_frequency = 1.0 / self.timer_period
@@ -76,9 +78,11 @@ class CompassPublisher(Node):
 
         if magfield is not None:
             raw_data = self.set_data(raw_data,magfield)
-
             data = self.low_pass_filter(raw_data)
+            raw_data = self.correct_coordinates(raw_data)
+            data = self.correct_coordinates(data)
 
+            self.get_logger().info('Current coordinate frame: [%d, %d, %d]' % (self.coordinate_frame[0], self.coordinate_frame[1], self.coordinate_frame[2]))
             self.get_logger().info('Publishing data: MagField[%.3f, %.3f, %.3f]' %
                                    (magfield.x, magfield.y, magfield.z))
         else:
@@ -112,7 +116,8 @@ class CompassPublisher(Node):
         return data
     
     def low_pass_filter_single_axis(self, raw_value, prev_raw_value, prev_value):
-        value = self.b0 * raw_value + self.b1 * prev_raw_value - self.a1 * prev_value
+        #value = self.b0 * raw_value + self.b1 * prev_raw_value - self.a1 * prev_value
+        value = self.b0 * raw_value + self.b1 * prev_raw_value + self.a1 * prev_value
         return value
     
     def set_header(self, data, frame_id, sec, nanosec):
@@ -134,10 +139,21 @@ class CompassPublisher(Node):
         return data
 
     def calculate_filter_coefficients(self):
-        K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        # K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        # self.b0 = K / (1 + K)
+        # self.b1 = self.b0
+        # self.a1 = (K - 1) / (1 + K)
+
+        K = (self.cutoff_frequency / self.sample_frequency)/2
         self.b0 = K / (1 + K)
         self.b1 = self.b0
-        self.a1 = (K - 1) / (1 + K)
+        self.a1 = (1 - K) / (1 + K)
+    
+    def correct_coordinates(self, data):
+        data.magnetic_field.x *= self.coordinate_frame[0]
+        data.magnetic_field.y *= self.coordinate_frame[1]
+        data.magnetic_field.z *= self.coordinate_frame[2]
+        return data
 
 def main(args=None):
     rclpy.init(args=args)
