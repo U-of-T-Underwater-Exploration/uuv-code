@@ -1,3 +1,0 @@
-[console_scripts]
-compass_driver_node = uuv_compass_driver.compass_driver_node:main
-
