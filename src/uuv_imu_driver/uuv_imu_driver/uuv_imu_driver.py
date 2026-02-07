@@ -31,7 +31,6 @@ class ImuPublisher(Node):
         self.declare_parameter('timer_period', 0.5)  # seconds
         self.declare_parameter('cutoff_frequency', 2.0)  # Hz
         self.declare_parameter('calibration_time', 0.0)  # seconds
-        self.declare_parameter('is_calibrated', False)
         
         try: navigator.init()
         except Exception as err:
@@ -43,18 +42,8 @@ class ImuPublisher(Node):
         self.bias = ImuData()
         self.error = ImuData()
         self.error.accel_z = -9.81  # Gravity
-
-        #Low pass filter parameters
-        self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
-        self.get_logger().info('Cutoff frequency set to: %.3f Hz' % self.cutoff_frequency)
-        self.sample_frequency = 1.0 / timer_period
-        self.get_logger().info('Sample frequency set to: %.3f Hz' % self.sample_frequency)
+        self.is_calibrated = False
         
-        self.b0 = 0.0
-        self.b1 = 0.0
-        self.a1 = 0.0
-        self.calculate_filter_coefficients()
-        self.get_logger().info('Filter coefficients calculated: b0=%.3f, b1=%.3f, a1=%.3f' % (self.b0, self.b1, self.a1))
         
         self.prev_raw_data = Imu()
         self.prev_data = Imu()
@@ -68,6 +57,18 @@ class ImuPublisher(Node):
         timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
         self.get_logger().info('Timer period set to: %.3f seconds' % timer_period)
         self.timer = self.create_timer(timer_period, self.timer_callback)   
+        
+        #Low pass filter parameters
+        self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
+        self.get_logger().info('Cutoff frequency set to: %.3f Hz' % self.cutoff_frequency)
+        self.sample_frequency = 1.0 / timer_period
+        self.get_logger().info('Sample frequency set to: %.3f Hz' % self.sample_frequency)
+        
+        self.b0 = 0.0
+        self.b1 = 0.0
+        self.a1 = 0.0
+        self.calculate_filter_coefficients()
+        self.get_logger().info('Filter coefficients calculated: b0=%.3f, b1=%.3f, a1=%.3f' % (self.b0, self.b1, self.a1))
 
 
     def timer_callback(self):
@@ -90,7 +91,7 @@ class ImuPublisher(Node):
             
         self.calibrate(elapsed, accel, gyro)
 
-        if accel is not None and gyro is not None:
+        if accel is not None and gyro is not None and self.is_calibrated is True:
             
             raw_data = self.set_data(raw_data, accel, gyro)
             raw_data = self.remove_bias(raw_data)
@@ -182,7 +183,7 @@ class ImuPublisher(Node):
                 self.bias.gyro_x += gyro.x
                 self.bias.gyro_y += gyro.y
                 self.bias.gyro_z += gyro.z
-            if elapsed >= self.calibration_time and not self.get_parameter('is_calibrated').get_parameter_value().bool_value:
+            if elapsed >= self.calibration_time and not self.is_calibrated:
                 self.bias.accel_x /= elapsed * self.sample_frequency
                 self.bias.accel_y /= elapsed * self.sample_frequency
                 
@@ -192,8 +193,8 @@ class ImuPublisher(Node):
                 self.bias.gyro_x /= elapsed * self.sample_frequency
                 self.bias.gyro_y /= elapsed * self.sample_frequency
                 self.bias.gyro_z /= elapsed * self.sample_frequency
-                self.set_parameter_value('is_calibrated', True)
-    
+                self.is_calibrated = True
+                
     def remove_bias(self, data):
         data.linear_acceleration.x -= self.bias.accel_x
         data.linear_acceleration.y -= self.bias.accel_y
