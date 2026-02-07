@@ -31,6 +31,8 @@ class ImuPublisher(Node):
         self.declare_parameter('timer_period', 0.5)  # seconds
         self.declare_parameter('cutoff_frequency', 2.0)  # Hz
         self.declare_parameter('calibration_time', 0.0)  # seconds
+        self.declare_parameter('coordinate_system_linear', [1,1,1])
+        self.declare_parameter('coordinate_system_angular', [1,1,1])        
         
         try: navigator.init()
         except Exception as err:
@@ -59,6 +61,8 @@ class ImuPublisher(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)   
         
         #Low pass filter parameters
+        self.coordinate_system_linear = list(self.get_parameter('coordinate_system_linear').value) #might be an array
+        self.coordinate_system_angular = list(self.get_parameter('coordinate_system_angular').value) #might be an array
         self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
         self.get_logger().info('Cutoff frequency set to: %.3f Hz' % self.cutoff_frequency)
         self.sample_frequency = 1.0 / timer_period
@@ -98,6 +102,13 @@ class ImuPublisher(Node):
             
             data = self.low_pass_filter(raw_data)
             data = self.remove_bias(data)
+            
+            raw_data = self.correct_coordinates(raw_data)
+            data = self.correct_coordinates(data)
+
+            self.get_logger().info('Current coordinates: Linear[%.3f, %.3f, %.3f], Angular[%.3f, %.3f, %.3f]' %
+                (self.coordinate_system_linear[0], self.coordinate_system_linear[1], self.coordinate_system_linear[2],
+                self.coordinate_system_angular[0], self.coordinate_system_angular[1], self.coordinate_system_angular[2]))
 
             self.get_logger().info('Publishing raw data: Accel[%.3f, %.3f, %.3f], Gyro[%.3f, %.3f, %.3f]' %
                                    (accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z))
@@ -169,10 +180,10 @@ class ImuPublisher(Node):
         return data
 
     def calculate_filter_coefficients(self):
-        K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
+        K = (self.cutoff_frequency / self.sample_frequency)/2
         self.b0 = K / (1 + K)
         self.b1 = self.b0
-        self.a1 = (K - 1) / (1 + K)
+        self.a1 = (1 - K) / (1 + K)
         
     def calibrate(self, elapsed, accel, gyro):
         if accel is not None and gyro is not None:
@@ -194,6 +205,15 @@ class ImuPublisher(Node):
                 self.bias.gyro_y /= elapsed * self.sample_frequency
                 self.bias.gyro_z /= elapsed * self.sample_frequency
                 self.is_calibrated = True
+                
+    def correct_coordinates(self, data):
+        data.linear_acceleration.x = data.linear_acceleration.x * self.coordinate_system_linear[0]
+        data.linear_acceleration.y = data.linear_acceleration.y * self.coordinate_system_linear[1]
+        data.linear_acceleration.z = data.linear_acceleration.z * self.coordinate_system_linear[2]
+        data.angular_velocity.x = data.angular_velocity.x * self.coordinate_system_angular[0]
+        data.angular_velocity.y = data.angular_velocity.y * self.coordinate_system_angular[1]
+        data.angular_velocity.z = data.angular_velocity.z * self.coordinate_system_angular[2]
+        return data
                 
     def remove_bias(self, data):
         data.linear_acceleration.x -= self.bias.accel_x
