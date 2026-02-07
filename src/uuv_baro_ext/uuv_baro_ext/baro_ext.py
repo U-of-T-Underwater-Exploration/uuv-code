@@ -27,7 +27,9 @@ class ExternalBarometerPublisher(Node):
         #start_time = self.get_clock().now()
 
         self.sensor = ms5837.MS5837(ms5837.MODEL_30BA, 6)
-        self.sensor.init()
+        if not self.sensor.init():
+            self.get_logger().error("Sensor could not be initialized")
+
         self.sensor.setFluidDensity(ms5837.DENSITY_FRESHWATER) #can be SALTWATER: 
         #Freshwater = 997kg/m^3, Saltwater = 1029kg/m^3
 
@@ -58,6 +60,7 @@ class ExternalBarometerPublisher(Node):
             status = self.sensor.read()
             if not status:
                 self.get_logger().warning("Sensor read failed")
+                return
                 
             read_time = self.get_clock().now().to_msg()
 
