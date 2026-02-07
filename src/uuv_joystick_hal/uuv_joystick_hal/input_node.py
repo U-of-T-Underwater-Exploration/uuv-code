@@ -70,7 +70,7 @@ class JoystickHAL(Node):
                 if a.state != ActionCommand().INACTIVE:
                     cmd.actions.append(a)
             self.prev_buttons = list(msg.buttons)
-            self.get_logger().info("Joystick message received")
+            #self.get_logger().info("Joystick message received")
             self.command_pub.publish(cmd)
 
         except Exception as e:

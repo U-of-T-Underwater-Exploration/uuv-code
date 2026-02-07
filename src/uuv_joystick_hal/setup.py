@@ -4,8 +4,9 @@ package_name = 'uuv_joystick_hal'
 
 setup(
     name=package_name,
-    version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    version='1.0.0',
+    #packages=find_packages(exclude=['test']),
+    packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -14,17 +15,12 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='yxz',
-    maintainer_email='yxz@todo.todo',
-    description='TODO: Package description',
+    description='Joystick hardware abstraction layer for UUV control',
     license='TODO: License declaration',
-    extras_require={
-        'test': [
-            'pytest',
-        ],
-    },
+    
     entry_points={
         'console_scripts': [
-            'joystick_hal = joystick_hal.input_node:main',
+            'joystick_hal = uuv_joystick_hal.input_node:main',
         ],
     },
 )
