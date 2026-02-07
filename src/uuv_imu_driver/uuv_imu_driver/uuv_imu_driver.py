@@ -187,7 +187,7 @@ class ImuPublisher(Node):
                 self.bias.accel_y /= elapsed * self.sample_frequency
                 
                 self.bias.accel_z /= elapsed * self.sample_frequency
-                self.bias.accel_z = self.bias.accel_z - 9.81
+                self.bias.accel_z = -9.81 - self.bias.accel_z
                 
                 self.bias.gyro_x /= elapsed * self.sample_frequency
                 self.bias.gyro_y /= elapsed * self.sample_frequency
