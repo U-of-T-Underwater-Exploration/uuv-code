@@ -12,6 +12,15 @@ import math
 from sensor_msgs.msg import Imu
 from builtin_interfaces.msg import Time
 
+class ImuData:
+    def __init__(self):
+        self.accel_x = 0.0
+        self.accel_y = 0.0
+        self.accel_z = 0.0
+        self.gyro_x = 0.0
+        self.gyro_y = 0.0
+        self.gyro_z = 0.0
+
 
 class ImuPublisher(Node):
 
@@ -21,21 +30,21 @@ class ImuPublisher(Node):
         self.dataPublisher = self.create_publisher(Imu, 'imu/data', 10)
         self.declare_parameter('timer_period', 0.5)  # seconds
         self.declare_parameter('cutoff_frequency', 2.0)  # Hz
-        self.declare_parameter('coordinate_system_linear', [1,1,1])
-        self.declare_parameter('coordinate_system_angular', [1,1,1])        
-
-        self.time_ = time.time()
+        self.declare_parameter('calibration_time', 0.0)  # seconds
+        self.declare_parameter('is_calibrated', False)
         
-        timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
-        self.get_logger().info('Timer period set to: %.3f seconds' % timer_period)
-
         try: navigator.init()
         except Exception as err:
             self.get_logger().error(str(err))
             
-        #Filter parameters
-        self.coordinate_system_linear = list(self.get_parameter('coordinate_system_linear').value) #might be an array
-        self.coordinate_system_angular = list(self.get_parameter('coordinate_system_angular').value) #might be an array
+        #Calibration parameters
+        self.calibration_time = self.get_parameter('calibration_time').get_parameter_value().double_value
+        self.get_logger().info('Calibration time set to: %.3f seconds' % self.calibration_time)
+        self.bias = ImuData()
+        self.error = ImuData()
+        self.error.accel_z = -9.81  # Gravity
+
+        #Low pass filter parameters
         self.cutoff_frequency = self.get_parameter('cutoff_frequency').get_parameter_value().double_value
         self.get_logger().info('Cutoff frequency set to: %.3f Hz' % self.cutoff_frequency)
         self.sample_frequency = 1.0 / timer_period
@@ -54,6 +63,10 @@ class ImuPublisher(Node):
         self.prev_data = self.set_default_values(self.prev_data)
         self.get_logger().info('Previous data initialized to zero values.')
 
+        #Timer parameters
+        self.time_ = time.time()
+        timer_period = self.get_parameter('timer_period').get_parameter_value().double_value
+        self.get_logger().info('Timer period set to: %.3f seconds' % timer_period)
         self.timer = self.create_timer(timer_period, self.timer_callback)   
 
 
@@ -68,24 +81,23 @@ class ImuPublisher(Node):
         sec = int(elapsed)
         nanosec = int((elapsed - sec) * 1e9)
 
-        if nanosec < 0:
-            nanosec = 0
     
         try:
             accel = navigator.read_accel()
             gyro = navigator.read_gyro()
         except Exception as err:
             self.get_logger().error(str(err))
+            
+        self.calibrate(elapsed, accel, gyro)
 
         if accel is not None and gyro is not None:
+            
             raw_data = self.set_data(raw_data, accel, gyro)
+            raw_data = self.remove_bias(raw_data)
+            
             data = self.low_pass_filter(raw_data)
-            raw_data = self.correct_coordinates(raw_data)
-            data = self.correct_coordinates(data)
+            data = self.remove_bias(data)
 
-            self.get_logger().info('Current coordinates: Linear[%.3f, %.3f, %.3f], Angular[%.3f, %.3f, %.3f]' %
-                (self.coordinate_system_linear[0], self.coordinate_system_linear[1], self.coordinate_system_linear[2],
-                self.coordinate_system_angular[0], self.coordinate_system_angular[1], self.coordinate_system_angular[2]))
             self.get_logger().info('Publishing raw data: Accel[%.3f, %.3f, %.3f], Gyro[%.3f, %.3f, %.3f]' %
                                    (accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z))
         else:
@@ -156,26 +168,42 @@ class ImuPublisher(Node):
         return data
 
     def calculate_filter_coefficients(self):
-        # K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
-        # self.b0 = K / (1 + K)
-        # self.b1 = self.b0
-        # self.a1 = (K - 1) / (1 + K)
-
-        K = (self.cutoff_frequency / self.sample_frequency)/2
+        K = math.tan(math.pi * self.cutoff_frequency / self.sample_frequency)
         self.b0 = K / (1 + K)
         self.b1 = self.b0
-        self.a1 = (1 - K) / (1 + K)
-   
-    def correct_coordinates(self, data):
-        data.linear_acceleration.x = data.linear_acceleration.x * self.coordinate_system_linear[0]
-        data.linear_acceleration.y = data.linear_acceleration.y * self.coordinate_system_linear[1]
-        data.linear_acceleration.z = data.linear_acceleration.z * self.coordinate_system_linear[2]
-        data.angular_velocity.x = data.angular_velocity.x * self.coordinate_system_angular[0]
-        data.angular_velocity.y = data.angular_velocity.y * self.coordinate_system_angular[1]
-        data.angular_velocity.z = data.angular_velocity.z * self.coordinate_system_angular[2]
+        self.a1 = (K - 1) / (1 + K)
+        
+    def calibrate(self, elapsed, accel, gyro):
+        if accel is not None and gyro is not None:
+            if elapsed < self.calibration_time:
+                self.bias.accel_x += accel.x
+                self.bias.accel_y += accel.y
+                self.bias.accel_z += accel.z
+                self.bias.gyro_x += gyro.x
+                self.bias.gyro_y += gyro.y
+                self.bias.gyro_z += gyro.z
+            if elapsed >= self.calibration_time and not self.get_parameter('is_calibrated').get_parameter_value().bool_value:
+                self.bias.accel_x /= elapsed * self.sample_frequency
+                self.bias.accel_y /= elapsed * self.sample_frequency
+                
+                self.bias.accel_z /= elapsed * self.sample_frequency
+                self.bias.accel_z = self.bias.accel_z - 9.81
+                
+                self.bias.gyro_x /= elapsed * self.sample_frequency
+                self.bias.gyro_y /= elapsed * self.sample_frequency
+                self.bias.gyro_z /= elapsed * self.sample_frequency
+                self.set_parameter_value('is_calibrated', True)
+    
+    def remove_bias(self, data):
+        data.linear_acceleration.x -= self.bias.accel_x
+        data.linear_acceleration.y -= self.bias.accel_y
+        data.linear_acceleration.z -= self.bias.accel_z
+        data.angular_velocity.x -= self.bias.gyro_x
+        data.angular_velocity.y -= self.bias.gyro_y
+        data.angular_velocity.z -= self.bias.gyro_z
         return data
-
-
+   
+        
 def main(args=None):
     rclpy.init(args=args)
 
