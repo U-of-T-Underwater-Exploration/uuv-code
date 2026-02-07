@@ -1,4 +1,5 @@
 /compass_driver_node:
   ros__parameters:
     timer_period: 0.1  # seconds
-    cutoff_frequency: 1.0  # Hz
+    cutoff_frequency: 25.0  # Hz
+    coordinate_frame: [1, 1, 1]  # 1 indicates no change
