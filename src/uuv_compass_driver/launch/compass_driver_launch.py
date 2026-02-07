@@ -16,6 +16,7 @@ def generate_launch_description():
         package='uuv_compass_driver',
         executable='compass_driver_node',
         name='compass_driver_node',
+        namespace = 'utux'
         parameters=[config]
         )
     ])
