@@ -38,7 +38,7 @@ class PWMDriver(Node):
 
             if not (0.0 <= duty <= 1.0):
                 self.get_logger().error('Thruster PWM values must be between 0.0 and 1.0.')
-                duty = max(0.0, min(1.0, duty))
+                duty = 0.0
                 self.pwm_valid[i] = False
 
             self.pwm_values[i] = duty
@@ -63,7 +63,7 @@ class PWMDriver(Node):
         valid = True #assume valid
         if not(0.0<=command_duty<=1.0): #check duty
             self.get_logger().error('PWM values must be between 0.0 and 1.0')
-            command_duty = max(0.0, min(1.0,command_duty))
+            command_duty = 0.0
             valid=False
 
         self.pwm_values[command_channel]=command_duty
