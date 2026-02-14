@@ -3,7 +3,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 
 from sensor_msgs.msg import FluidPressure, Temperature
-from uuv_baro_ext import ms5837
+import ms5837
 import time
 
 

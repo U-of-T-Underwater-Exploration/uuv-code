@@ -1,5 +1,6 @@
-from uuv_baro_ext import ms5837
+#from uuv_baro_ext import ms5837
 import time
+import ms5837
 
 try:
     sensor = ms5837.MS5837_30BA(bus=6) 

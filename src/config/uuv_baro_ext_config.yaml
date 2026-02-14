@@ -1,0 +1,7 @@
+/uuv_baro_ext:
+  ros_parameters:
+    timer_period: 0.1 #seconds
+    publish_rate: 1
+    cutoff_frequency: 1
+    sampling_frequency: 1
+    
