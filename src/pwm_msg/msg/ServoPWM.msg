@@ -1,0 +1,2 @@
+float32 servo_angle
+int8 pwm_channelnumber
