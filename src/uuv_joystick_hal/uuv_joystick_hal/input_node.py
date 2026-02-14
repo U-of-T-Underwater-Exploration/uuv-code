@@ -2,10 +2,8 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from uuv_joystick_hal.msg import UUVCommand, ActionCommand
+from uuv_joystick_msgs.msg import UUVCommand, ActionCommand
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-
-
 
 class JoystickHAL(Node):
     def __init__(self):
@@ -75,8 +73,6 @@ class JoystickHAL(Node):
 
         except Exception as e:
             self.get_logger().error(f'Joystick processing failed: {e}')
-
-
 
 
 def main(args=None):
