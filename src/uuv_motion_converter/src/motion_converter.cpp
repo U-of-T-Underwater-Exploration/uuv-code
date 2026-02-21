@@ -137,10 +137,19 @@ class MotionConverter : public rclcpp::Node
         // TODO: Extract motion commands from msg
         motion_cmd(0) = msg->surge;
         motion_cmd(1) = msg->sway;
-        motion_cmd(2) = msg->heave;
+        motion_cmd(2) = msg->heave / 2.0 - 0.5;
         motion_cmd(3) = msg->roll;
         motion_cmd(4) = msg->pitch;
-        motion_cmd(5) = msg->yaw;
+        motion_cmd(5) = msg->yaw / 2.0 - 0.5;
+
+        for (size_t i = 0; i < msg->motion_command.size(); i++){
+            if (msg->motion_command[i].action == 4){
+                motion_cmd(2) *= -1;
+            }
+            if (msg->motion_command[i].action == 5){
+                motion_cmd(5) *= -1;
+            }
+        }
 
         Eigen::VectorXf wrench(6);
         // TODO: Convert motion commands to wrench
