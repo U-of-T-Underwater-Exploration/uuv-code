@@ -142,11 +142,11 @@ class MotionConverter : public rclcpp::Node
         motion_cmd(4) = msg->pitch;
         motion_cmd(5) = msg->yaw / 2.0 - 0.5;
 
-        for (size_t i = 0; i < msg->motion_command.size(); i++){
-            if (msg->motion_command[i].action == 4){
+        for (size_t i = 0; i < msg->actions.size(); i++){
+            if (msg->actions[i].action == 4){
                 motion_cmd(2) *= -1;
             }
-            if (msg->motion_command[i].action == 5){
+            if (msg->actions[i].action == 5){
                 motion_cmd(5) *= -1;
             }
         }
