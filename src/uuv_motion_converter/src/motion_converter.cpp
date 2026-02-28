@@ -212,7 +212,9 @@ class MotionConverter : public rclcpp::Node
             
             // Check if duty cycle is out of bounds and clamp
             if (motor_percentage < -1.0f || motor_percentage > 1.0f) {
-                RCLCPP_ERROR(this->get_logger(), "Thruster %d duty cycle out of bounds: %.3f. Clamping to [-1, 1]", i, motor_percentage);
+                if (motor_percentage < -1.01f || motor_percentage > 1.01f) {
+                    RCLCPP_ERROR(this->get_logger(), "Thruster %d duty cycle out of bounds: %.6f. Clamping to [-1, 1]", i, motor_percentage);
+                }
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
             
