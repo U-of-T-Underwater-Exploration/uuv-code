@@ -1,5 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
+#include "uuv_joystick_msgs/msg/uuv_command.hpp"
 #include <Eigen/Dense>
 #include <vector>
 #include <string>
@@ -62,8 +63,8 @@ class MotionConverter : public rclcpp::Node
         : Node("motion_converter_node")
         {   
             // // Subscribe to 'motion/command' joystick inputs
-            motion_cmd_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-                "/motion/command", 10, std::bind(&MotionConverter::get_wrench_callback, this, std::placeholders::_1));
+            motion_cmd_sub_ = this->create_subscription<uuv_joystick_msgs::msg::UUVCommand>(
+                "/input/command", 10, std::bind(&MotionConverter::get_wrench_callback, this, std::placeholders::_1));
 
             // // Publish to '/thruster/command' 
             thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
@@ -127,15 +128,27 @@ class MotionConverter : public rclcpp::Node
     }
 
     //Call back function: Converts joystick inputs into motor thrust vector 
-    void get_wrench_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg){
+    void get_wrench_callback(const uuv_joystick_msgs::msg::UUVCommand::SharedPtr msg){
         // TODO: Implement callback logic
         // Suppress unused parameter warning
         (void)msg;
         
         Eigen::VectorXf motion_cmd(6);
         // TODO: Extract motion commands from msg
-        for(int i=0; i<6; i++){
-            motion_cmd(i) = msg->data[i];
+        motion_cmd(0) = msg->surge;
+        motion_cmd(1) = msg->sway;
+        motion_cmd(2) = msg->heave / 2.0 - 0.5;
+        motion_cmd(3) = msg->roll;
+        motion_cmd(4) = msg->pitch;
+        motion_cmd(5) = msg->yaw / 2.0 - 0.5;
+
+        for (size_t i = 0; i < msg->actions.size(); i++){
+            if (msg->actions[i].action == 4){
+                motion_cmd(2) *= -1;
+            }
+            if (msg->actions[i].action == 5){
+                motion_cmd(5) *= -1;
+            }
         }
 
         Eigen::VectorXf wrench(6);
@@ -199,7 +212,9 @@ class MotionConverter : public rclcpp::Node
             
             // Check if duty cycle is out of bounds and clamp
             if (motor_percentage < -1.0f || motor_percentage > 1.0f) {
-                RCLCPP_ERROR(this->get_logger(), "Thruster %d duty cycle out of bounds: %.3f. Clamping to [-1, 1]", i, motor_percentage);
+                if (motor_percentage < -1.01f || motor_percentage > 1.01f) {
+                    RCLCPP_ERROR(this->get_logger(), "Thruster %d duty cycle out of bounds: %.6f. Clamping to [-1, 1]", i, motor_percentage);
+                }
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
             
@@ -243,7 +258,7 @@ class MotionConverter : public rclcpp::Node
         }
     }
 
-    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr motion_cmd_sub_;
+    rclcpp::Subscription<uuv_joystick_msgs::msg::UUVCommand>::SharedPtr motion_cmd_sub_;
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr thruster_cmd_pub_;
     };
 
