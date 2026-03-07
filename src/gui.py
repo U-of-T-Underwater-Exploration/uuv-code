@@ -1,10 +1,8 @@
 import sys
-from PyQt6.QtWidgets import (
-QApplication, QWidget, QLabel,
-QVBoxLayout, QHBoxLayout,
-QProgressBar, QFrame
-)
+import cv2
+from PyQt6.QtWidgets import (QApplication, QWidget, QLabel,QVBoxLayout, QHBoxLayout,QProgressBar, QFrame, QPushButton)
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap, QImage
 import random
 
 
@@ -12,7 +10,7 @@ class RobotGUI(QWidget):
     def __init__(self):
         super().__init__()
 
-# ================= INITIALIZE VALUES =================
+# INITIALIZE VALUES
         self.batterypercent = 100
         self.cells = [100] * 8
 
@@ -37,29 +35,28 @@ class RobotGUI(QWidget):
         self.timer.timeout.connect(self.update_data)
         self.timer.start(1000) #update every second
 
-# Build UI
-        self.init_ui()
+        self.init_ui() # build UI
 
-# ================= UI LAYOUT =================
+#UI LAYOUT
     def init_ui(self):
-        self.setWindowTitle("Robot Dashboard")
+        self.setWindowTitle("The Best Dashboard")
         self.setGeometry(100, 100, 1100, 550)
 
         main_layout = QHBoxLayout()
 
-# ================= LEFT COLUMN (BATTERIES) =================
+#LEFT COLUMN
         battery_col = QVBoxLayout()
 
         title = QLabel("Batteries")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         battery_col.addWidget(title)
 
-# Main battery
+        #main battery
         battery_col.addWidget(QLabel("Battery"))
         self.battery_bar = self.make_bar(self.batterypercent)
         battery_col.addWidget(self.battery_bar)
 
-# Cell bars
+        #cells
         self.cell_bars = []
         for i in range(8):
                 battery_col.addWidget(QLabel(f"Cell {i+1}"))
@@ -75,7 +72,7 @@ class RobotGUI(QWidget):
         battery_col.addWidget(self.voltage_label)
         battery_col.addWidget(self.current_label)
 
-# ================= MIDDLE COLUMN (THRUSTERS) =================
+#MIDDLE COLUMN
         thruster_col = QVBoxLayout()
 
         thruster_title = QLabel("Thrusters")
@@ -99,9 +96,10 @@ class RobotGUI(QWidget):
             thruster_col.addLayout(row)
             self.thruster_labels.append(value)
 
-# ================= RIGHT COLUMN =================
+#RIGHT COLUMN
         right_col = QVBoxLayout()
 
+        #temps
         temp_title = QLabel("Temperature")
         temp_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
@@ -114,7 +112,8 @@ class RobotGUI(QWidget):
 
         right_col.addSpacing(20)
 
-        pos_title = QLabel("Position")
+        #position and velocity
+        pos_title = QLabel("Position and Velocity")
         pos_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
         self.x_label = QLabel(f"X: {self.x:.2f}")
@@ -134,23 +133,59 @@ class RobotGUI(QWidget):
         right_col.addWidget(self.vy_label)
         right_col.addWidget(self.vz_label)
 
-# ================= VERTICAL SEPARATORS =================
+#CAMERA COLUMN
+        camera_col = QVBoxLayout()
+
+        #WHALESHARK
+        self.whaleshark = QLabel()
+        pixmap = QPixmap("Whaleshark.png")
+        scaled_pixmap = pixmap.scaledToWidth(100,Qt.TransformationMode.SmoothTransformation)
+        self.whaleshark.setPixmap(scaled_pixmap)
+        camera_col.addWidget(self.whaleshark)
+
+        Camera_title = QLabel("Camera")
+        Camera_title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        camera_col.addWidget(Camera_title)
+        """
+        self.video_label = QLabel()
+        self.video_label.setScaledContents(True)
+        camera_col.addWidget(self.video_label)
+
+        self.start_button = QPushButton("Start")
+        self.start_button.clicked.connect(self.start_camera)
+        camera_col.addWidget(self.start_button)
+
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.clicked.connect(self.stop_camera)
+        camera_col.addWidget(self.stop_button)
+        
+        self.cap = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_frame)"""
+
+# VERTICAL SEPARATORS
         line1 = self.make_vline()
         line2 = self.make_vline()
+        line3 = self.make_vline()
 
         main_layout.addLayout(battery_col)
         main_layout.addWidget(line1)
         main_layout.addLayout(thruster_col)
         main_layout.addWidget(line2)
         main_layout.addLayout(right_col)
+        main_layout.addWidget(line3)
+        main_layout.addLayout(camera_col)
+
 
         main_layout.setStretch(0,3)
         main_layout.setStretch(2,2)
         main_layout.setStretch(4,2)
+        main_layout.setStretch(6,2)
+        main_layout.setStretch(8,3)
 
         self.setLayout(main_layout)
 
-# ================= HELPERS =================
+#HELPERS
     def make_bar(self, value):
         bar = QProgressBar()
         bar.setRange(0, 100)
@@ -163,7 +198,40 @@ class RobotGUI(QWidget):
         line.setFrameShape(QFrame.Shape.VLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
         return line
-    
+            
+    """def start_camera(self):
+        try:
+             self.cap = cv2.VideoCapture(0)
+             if not self.cap.isOpened():
+                  raise ValueError("Could not open Camera")
+             self.timer.start(30)
+        except Exception as e:
+             print(f"error Starting camera: {e}")
+
+    def update_frame(self):
+        if self.cap is not None and self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        h, w, ch = rgb_frame.shape
+                        bytes_per_line = ch * w
+                        qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+                        self.video_label.setPixmap(QPixmap.fromImage(qt_image))
+                else:
+                     print("failed to grab frame")
+
+    def stop_camera(self):
+        self.timer.stop()
+        if self.cap is not None:
+             self.video_label.clear()
+        self.video_label.clear()
+
+    def closeEvent(self,event):
+        self.stop_camera()
+        event.accept()"""
+
+
+
     def update_data(self):
 
         self.batterypercent = max(0, self.batterypercent - random.randint(0,2))
@@ -173,7 +241,7 @@ class RobotGUI(QWidget):
              self.cells[i] = max(0, self.cells[i] - random.randint(0,2))
              self.cell_bars[i].setValue(self.cells[i])
         
-        self.v = 28 + random.uniform(-1,1)
+        self.V = 28 + random.uniform(-1,1)
         self.I = 5 + random.uniform(-1,1)
         self.voltage_label.setText(f"Voltage: {self.V:.2f} V")
         self.current_label.setText(f"Current: {self.I: .2f} A")
