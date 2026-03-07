@@ -10,6 +10,7 @@ def generate_launch_description():
             executable='robot_state_publisher',
             name='robot_state_publisher',
             output='screen',
+            namespace='utux',
             parameters=[{
                 'robot_description': Command([
                     'xacro ',
