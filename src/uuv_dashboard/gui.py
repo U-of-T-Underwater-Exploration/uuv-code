@@ -33,7 +33,7 @@ class RobotGUI(QWidget):
         #TIMER
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_data)
-        self.timer.start(1000) #update every second
+        self.timer.start(66) #update every second
 
         self.init_ui() # build UI
 
@@ -138,7 +138,7 @@ class RobotGUI(QWidget):
 
         #WHALESHARK
         self.whaleshark = QLabel()
-        pixmap = QPixmap("Whaleshark.png")
+        pixmap = QPixmap("./Assets/Whaleshark.png")
         scaled_pixmap = pixmap.scaledToWidth(100,Qt.TransformationMode.SmoothTransformation)
         self.whaleshark.setPixmap(scaled_pixmap)
         camera_col.addWidget(self.whaleshark)
