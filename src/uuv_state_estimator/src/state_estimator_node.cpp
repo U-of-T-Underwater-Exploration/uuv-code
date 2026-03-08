@@ -69,9 +69,9 @@ class StateEstimatorNode : public rclcpp::Node {
         m_body_ << m_body_.y(), m_body_.x(), -m_body_.z();
 
         // frame transformation
-        a_body_ = T_baseToIMU_.block<3, 3>(0, 0) * a_body + T_baseToIMU_.block<3, 1>(0, 3);
-        w_body_ = T_baseToIMU_.block<3, 3>(0, 0) * w_body + T_baseToIMU_.block<3, 1>(0, 3);
-        m_body_ = T_baseToCompass_.block<3, 3>(0, 0) * m_body + T_baseToCompass_.block<3, 1>(0, 3);
+        a_body_ = T_baseToIMU_ * a_body;
+        w_body_ = T_baseToIMU_ * w_body;
+        m_body_ = T_baseToCompass_ * m_body;
 
         //  Correct acceleration reading w/r to body
         a_corrected_body_ = corrector_.update(a_body_, w_body_);  
