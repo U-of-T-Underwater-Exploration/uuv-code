@@ -54,14 +54,24 @@ class StateEstimatorNode : public rclcpp::Node {
 
         /**
          * TODO:
-         * [ ] ENU --> NED
-         * [ ] sensor_frame --> body_frame
+         * [X] ENU --> NED
+         * [X] sensor_frame --> body_frame
          * [X] Correct a₆
          * [X] Make Normalized a₆ & B₆
          * [ ] Look-up g & m 
          * [ ] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
          * [ ] [pose, twist] = KF(a₆, ω₆, ori, P)
          */
+
+        // ENU to NED tranformation
+        a_body_ << a_body_.y(), a_body_.x(), -a_body_.z();
+        w_body_ << w_body_.y(), w_body_.x(), -w_body_.z();
+        m_body_ << m_body_.y(), m_body_.x(), -m_body_.z();
+
+        // frame transformation
+        a_body_ = T_baseToIMU_.block<3, 3>(0, 0) * a_body + T_baseToIMU_.block<3, 1>(0, 3);
+        w_body_ = T_baseToIMU_.block<3, 3>(0, 0) * w_body + T_baseToIMU_.block<3, 1>(0, 3);
+        m_body_ = T_baseToCompass_.block<3, 3>(0, 0) * m_body + T_baseToCompass_.block<3, 1>(0, 3);
 
         //  Correct acceleration reading w/r to body
         a_corrected_body_ = corrector_.update(a_body_, w_body_);  
