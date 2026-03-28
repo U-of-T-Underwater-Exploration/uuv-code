@@ -9,13 +9,13 @@ def generate_launch_description():
             executable='camera_node',
             name='uuv_camera_driver',
             output='screen',
+            namespace='camera', # for /camera
             parameters=[{
                 'camera_name': 'uuv_camera',
-                'image_width': 640,
-                'image_height': 480,
-                'framerate': 15.0,
-                'device_id': 0,  # typically /dev/video0
-                'use_system_default_qos': True
+                'width': 640,
+                'height': 480,
+                #'FrameDurationLimits': "[50000, 50000]", #camera_ros default is 20Hz
+                'format': RGB888
             }]
         )
     ])
