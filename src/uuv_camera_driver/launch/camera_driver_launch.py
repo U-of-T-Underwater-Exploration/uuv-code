@@ -15,7 +15,7 @@ def generate_launch_description():
                 'width': 640,
                 'height': 480,
                 #'FrameDurationLimits': "[50000, 50000]", #camera_ros default is 20Hz
-                'format': RGB888
+                'format': "RGB888"
             }]
         )
     ])
