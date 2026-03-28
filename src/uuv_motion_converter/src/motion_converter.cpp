@@ -137,10 +137,10 @@ class MotionConverter : public rclcpp::Node
         // TODO: Extract motion commands from msg
         motion_cmd(0) = msg->surge;
         motion_cmd(1) = msg->sway;
-        motion_cmd(2) = msg->heave / 2.0 - 0.5;
+        motion_cmd(2) = msg->heave; // 2.0 - 0.5;
         motion_cmd(3) = msg->roll;
         motion_cmd(4) = msg->pitch;
-        motion_cmd(5) = msg->yaw / 2.0 - 0.5;
+        motion_cmd(5) = msg->yaw; // 2.0 - 0.5;
 
         for (size_t i = 0; i < msg->actions.size(); i++){
             if (msg->actions[i].action == 4){
@@ -210,6 +210,11 @@ class MotionConverter : public rclcpp::Node
             float normalized_thrust = motor_thrust_vec[i] / factor;
             float motor_percentage = thrust_mapping(normalized_thrust, thrusters[i]);
             
+            //Inverts each motor's thrust if required
+            if (thrusters[i].inverted) {
+                motor_percentage *= -1.0f;
+            }
+            
             // Check if duty cycle is out of bounds and clamp
             if (motor_percentage < -1.0f || motor_percentage > 1.0f) {
                 if (motor_percentage < -1.01f || motor_percentage > 1.01f) {
@@ -218,7 +223,8 @@ class MotionConverter : public rclcpp::Node
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
             
-            thruster_cmd.data[i] = motor_percentage;
+            //Sets indexes based on thruster id
+            thruster_cmd.data[thrusters[i].id] = motor_percentage; 
         }
 
         thruster_cmd_pub_->publish(thruster_cmd);
