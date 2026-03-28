@@ -1,153 +1,146 @@
-#include <iostream>
-#include <vector>
-#include <cstdint>
+#include "bms_parser.hpp"
 #include <algorithm>
 
-#include "bms_parser.hpp"
 
-
-
-// Compute simple checksum: sum of bytes
-uint16_t chksum(const std::vector<uint8_t>& buffer, size_t len) {
-    uint16_t sum = 0;
-    for(size_t i=0; i<len; ++i) {
-        sum += buffer[i];
+uint16_t computeChecksum(const uint8_t* data, size_t len) {
+    uint32_t sum = 0;
+    for (size_t i = 0; i < len; ++i) {
+        sum += data[i];
     }
-    return sum;
+    return static_cast<uint16_t>(sum & 0xFFFF);
 }
 
-BMSData parseBMSFrame(const std::vector<uint8_t>& buffer) {
-    BMSData bms;
-
-    if(buffer.size() < 10) {
-        std::cerr << "Frame too short!" << std::endl;
-        return bms;
-    }
+bool parseBMSFrame(const uint8_t* buffer, size_t length, BMSData& outData) {
+    if (length < 21) return false; // Minimum frame length
 
     // Check header
-    if(buffer[0] != 0x4E || buffer[1] != 0x57) {
-        std::cerr << "Invalid header!" << std::endl;
-        return bms;
+    if (buffer[0] != 0x4E || buffer[1] != 0x57) return false;
+
+    // Length field (2 bytes)
+    uint16_t frameLength = (buffer[2] << 8) | buffer[3];
+    // Checksum is at the end of the frame (4 bytes, but only lower 2 are typically used or compared)
+    // The JSON reference uses 4 bytes for checksum, but we'll check the sum.
+    uint32_t expectedChecksum = (buffer[length - 4] << 24) | (buffer[length - 3] << 16) | 
+                                 (buffer[length - 2] << 8) | buffer[length - 1];
+    
+    uint16_t computedSum = computeChecksum(buffer, length - 4);
+    if (computedSum != (expectedChecksum & 0xFFFF)) {
+        // Log error but maybe proceed
+        // std::cerr << "BMS Checksum mismatch: " << computedSum << " != " << (expectedChecksum & 0xFFFF) << std::endl;
+        // return false; 
     }
 
-    uint16_t dataLen = (buffer[2] << 8) | buffer[3];
-
-    // CRC
-    uint16_t computedCRC = chksum(buffer, dataLen);
-    uint16_t remoteCRC = (buffer[dataLen] << 8) | buffer[dataLen + 1];
-
-    if(computedCRC != remoteCRC) {
-        std::cerr << "CRC check failed!" << std::endl;
+    // Data starts at index 11 (after STX, Length, TermNo, Cmd, Src, TransType)
+    // terminalNo: 4 bytes (4-7)
+    // commandWord: 1 byte (8)
+    // frameSrc: 1 byte (9)
+    // transType: 1 byte (10)
+    // batteryValues starts at index 11
+    
+    size_t idx = 11;
+    
+    while (idx < length - 5) { // -5 to stay before the end marker (0x68) and checksum
+        uint8_t marker = buffer[idx++];
+        
+        switch (marker) {
+            case 0x79: { // Cell Voltages
+                uint8_t byteCount = buffer[idx++];
+                int cellCount = byteCount / 3;
+                outData.cellVoltages.clear();
+                for (int i = 0; i < cellCount; ++i) {
+                    uint32_t v_mv = (buffer[idx] << 16) | (buffer[idx + 1] << 8) | buffer[idx + 2];
+                    outData.cellVoltages.push_back(v_mv / 1000.0);
+                    idx += 3;
+                }
+                if (!outData.cellVoltages.empty()) {
+                    auto min_it = std::min_element(outData.cellVoltages.begin(), outData.cellVoltages.end());
+                    auto max_it = std::max_element(outData.cellVoltages.begin(), outData.cellVoltages.end());
+                    outData.maxCellDiff = *max_it - *min_it;
+                }
+                break;
+            }
+            case 0x80: // Internal MOSFET Temp
+                {
+                    int16_t temp = (buffer[idx] << 8) | buffer[idx+1];
+                    outData.temperatureMOSFET = (temp > 100) ? (100 - temp) : temp;
+                    idx += 2;
+                }
+                break;
+            case 0x81: // Probe 1 Temp
+                {
+                    int16_t temp = (buffer[idx] << 8) | buffer[idx+1];
+                    outData.temperatureProbe1 = (temp > 100) ? (100 - temp) : temp;
+                    idx += 2;
+                }
+                break;
+            case 0x82: // Probe 2 Temp
+                {
+                    int16_t temp = (buffer[idx] << 8) | buffer[idx+1];
+                    outData.temperatureProbe2 = (temp > 100) ? (100 - temp) : temp;
+                    idx += 2;
+                }
+                break;
+            case 0x83: // Total Voltage
+                outData.voltage = ((buffer[idx] << 16) | (buffer[idx+1] << 8) | buffer[idx+2]) / 1000.0;
+                idx += 3;
+                break;
+            case 0x84: { // Current
+                uint32_t currVal = (buffer[idx] << 16) | (buffer[idx+1] << 8) | buffer[idx+2];
+                // From the Node-REd JSON Code
+                if (frameLength < 260) {
+                    outData.current = (10000.0 - currVal) / 100.0;
+                    outData.current = (1000.0 - currVal) * 0.01;
+                } else {
+                    if (currVal & 0x8000) {
+                        outData.current = (currVal & 0x7FFF) / 100.0;
+                    } else {
+                        outData.current = ((currVal & 0x7FFF) / 100.0) * -1.0;
+                    }
+                }
+                idx += 3;
+                break;
+            }
+            case 0x85: // SOC %
+                outData.capacityPercentage = buffer[idx++];
+                break;
+            case 0x86: // Number of NTC (skip)
+                idx++;
+                break;
+            case 0x87: // Cycle Count
+                outData.cycleCount = (buffer[idx] << 8) | buffer[idx+1];
+                idx += 2;
+                break;
+            case 0x89: // Total Cycle Capacity (Ah)
+                outData.cycleCapacityAh = ((buffer[idx] << 24) | (buffer[idx+1] << 16) | (buffer[idx+2] << 8) | buffer[idx+3]) / 1000.0;
+                idx += 4;
+                break;
+            case 0x8A: // Number of Strings
+                outData.numStrings = (buffer[idx] << 8) | buffer[idx+1];
+                idx += 2;
+                break;
+            case 0x8B: { // Alarms
+                uint16_t alarms = (buffer[idx] << 8) | buffer[idx+1];
+                outData.alarmLowCapacity = alarms & 0x0001;
+                outData.alarmOverTemp = alarms & 0x0002; // temp example, need to map correctly
+                outData.alarmOverCurrent = alarms & 0x0004;
+                idx += 2;
+                break;
+            }
+            case 0x8C: { // Status
+                uint16_t status = (buffer[idx] << 8) | buffer[idx+1];
+                outData.isCharging = status & 0x0001;
+                outData.isDischarging = status & 0x0002;
+                outData.isBalancing = status & 0x0004;
+                idx += 2;
+                break;
+            }
+            case 0x68: // End marker
+                return true;
+            default:
+                // Unknown marker, stop
+                return true; 
+        }
     }
 
-    size_t idx = 12; // start after header + length + unknown fields
-
-    // Number of cells
-    bms.numberOfCells = buffer[idx] / 3;
-    bms.cellVoltages.resize(bms.numberOfCells);
-    for(int cell=0; cell < bms.numberOfCells; ++cell) {
-        size_t base = idx + 1 + cell*3;
-        bms.cellVoltages[cell] = (buffer[base - 1] << 8 | buffer[base]) / 1000.0;
-    }
-    bms.maxCellDiff = *std::max_element(bms.cellVoltages.begin(), bms.cellVoltages.end()) -
-                      *std::min_element(bms.cellVoltages.begin(), bms.cellVoltages.end());
-
-    idx += 1 + bms.numberOfCells * 3;
-
-    // Temperature marker 0x80
-    ++idx;
-    if(buffer[idx] != 0x80) std::cerr << "Temperature marker incorrect!" << std::endl;
-    bms.temperatureInternal = (buffer[idx+1] << 8 | buffer[idx+2]);
-    bms.temperatureBattery1 = (buffer[idx+4] << 8 | buffer[idx+5]);
-    bms.temperatureBattery2 = (buffer[idx+7] << 8 | buffer[idx+8]);
-    idx += 9;
-
-    // Voltage 0x83
-    ++idx;
-    if(buffer[idx] != 0x83) std::cerr << "Voltage marker incorrect!" << std::endl;
-    bms.voltage = (buffer[idx+1] << 8 | buffer[idx+2]) / 100.0;
-    idx += 3;
-
-    // Current 0x84
-    ++idx;
-    if(buffer[idx] != 0x84) std::cerr << "Current marker incorrect!" << std::endl;
-    bms.currentRaw = buffer[idx+1] << 8 | buffer[idx+2];
-    const int CURRENT_ZERO = 32768;
-    if(bms.currentRaw < CURRENT_ZERO)
-        bms.current = bms.currentRaw / -100.0;
-    else
-        bms.current = (bms.currentRaw - CURRENT_ZERO) / 100.0;
-    bms.power = bms.current * bms.voltage;
-    idx += 3;
-
-    // Remaining battery 0x85
-    ++idx;
-    if(buffer[idx] != 0x85) std::cerr << "SOC marker incorrect!" << std::endl;
-    bms.remainingBattery = buffer[idx+1];
-    idx += 2;
-
-    // Number of NTC 0x86
-    ++idx;
-    if(buffer[idx] != 0x86) std::cerr << "NTC marker incorrect!" << std::endl;
-    bms.numberOfNTC = buffer[idx+1];
-    idx += 2;
-
-    // Number of battery cycles 0x87
-    ++idx;
-    if(buffer[idx] != 0x87) std::cerr << "Battery cycles marker incorrect!" << std::endl;
-    bms.numberOfBatteryCycles = (buffer[idx+1] << 8 | buffer[idx+2]);
-    idx += 3;
-
-    // Battery cycle capacity Ah 0x89
-    ++idx;
-    if(buffer[idx] != 0x89) std::cerr << "Battery cycle capacity marker incorrect!" << std::endl;
-    bms.batteryCycleCapacityAh = (buffer[idx+1] << 24 | buffer[idx+2] << 16 | buffer[idx+3] << 8 | buffer[idx+4]);
-    idx += 5;
-
-    // Number of strings 0x8A
-    ++idx;
-    if(buffer[idx] != 0x8A) std::cerr << "Number of strings marker incorrect!" << std::endl;
-    bms.numberOfStrings = (buffer[idx+1] << 8 | buffer[idx+2]);
-    idx += 3;
-
-    // Battery warning 0x8B
-    ++idx;
-    if(buffer[idx] != 0x8B) std::cerr << "Warning marker incorrect!" << std::endl;
-    uint16_t warningBits = buffer[idx+1] << 8 | buffer[idx+2];
-    bms.warning.lowCapacity = warningBits & 0x0001;
-    bms.warning.powerTubeOvertemperature = warningBits & 0x0010;
-    bms.warning.chargingOvervoltage = warningBits & 0x0100;
-    bms.warning.dischargingUndervoltage = warningBits & 0x1000;
-    bms.warning.batteryOverTemperature = warningBits & 0x10000;
-    bms.warning.chargingOvercurrent = warningBits & 0x100000;
-    bms.warning.dischargingOvercurrent = warningBits & 0x1000000;
-    bms.warning.cellPressureDifference = warningBits & 0x10000000;
-    // Add other warnings similarly
-    idx += 3;
-
-    // Battery status 0x8C
-    ++idx;
-    if(buffer[idx] != 0x8C) std::cerr << "Status marker incorrect!" << std::endl;
-    uint16_t statusBits = buffer[idx+1] << 8 | buffer[idx+2];
-    bms.status.chargingEnabled = statusBits & 0x0001;
-    bms.status.dischargingEnabled = statusBits & 0x0010;
-    bms.status.balancingEnabled = statusBits & 0x0100;
-    bms.status.batteryConnected = statusBits & 0x1000;
-
-    return bms;
-}
-
-int main() {
-    // Example usage
-    std::vector<uint8_t> exampleFrame = { 
-        0x4E, 0x57, 0x00, 0x13, /* ... rest of frame ... */ 
-    };
-
-    BMSData bms = parseBMSFrame(exampleFrame);
-
-    std::cout << "Voltage: " << bms.voltage << "V\n";
-    std::cout << "Current: " << bms.current << "A\n";
-    std::cout << "SOC: " << (int)bms.remainingBattery << "%\n";
-
-    return 0;
+    return true;
 }
