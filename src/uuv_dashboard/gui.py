@@ -146,22 +146,7 @@ class RobotGUI(QWidget):
         Camera_title = QLabel("Camera")
         Camera_title.setStyleSheet("font-size: 18px; font-weight: bold;")
         camera_col.addWidget(Camera_title)
-        """
-        self.video_label = QLabel()
-        self.video_label.setScaledContents(True)
-        camera_col.addWidget(self.video_label)
-
-        self.start_button = QPushButton("Start")
-        self.start_button.clicked.connect(self.start_camera)
-        camera_col.addWidget(self.start_button)
-
-        self.stop_button = QPushButton("Stop")
-        self.stop_button.clicked.connect(self.stop_camera)
-        camera_col.addWidget(self.stop_button)
         
-        self.cap = None
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)"""
 
 # VERTICAL SEPARATORS
         line1 = self.make_vline()
@@ -199,36 +184,6 @@ class RobotGUI(QWidget):
         line.setFrameShadow(QFrame.Shadow.Sunken)
         return line
             
-    """def start_camera(self):
-        try:
-             self.cap = cv2.VideoCapture(0)
-             if not self.cap.isOpened():
-                  raise ValueError("Could not open Camera")
-             self.timer.start(30)
-        except Exception as e:
-             print(f"error Starting camera: {e}")
-
-    def update_frame(self):
-        if self.cap is not None and self.cap.isOpened():
-                ret, frame = self.cap.read()
-                if ret:
-                        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        h, w, ch = rgb_frame.shape
-                        bytes_per_line = ch * w
-                        qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-                        self.video_label.setPixmap(QPixmap.fromImage(qt_image))
-                else:
-                     print("failed to grab frame")
-
-    def stop_camera(self):
-        self.timer.stop()
-        if self.cap is not None:
-             self.video_label.clear()
-        self.video_label.clear()
-
-    def closeEvent(self,event):
-        self.stop_camera()
-        event.accept()"""
 
 
 
