@@ -16,6 +16,8 @@ class RobotSubscriber(Node): #Todo:Update to include other topics
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
 
 class RobotGUI(QWidget):
+     thrusters_updated = pyqtSignal(list)
+     
      def __init__(self):
           super().__init__()
 
@@ -39,12 +41,41 @@ class RobotGUI(QWidget):
           self.vy = 0.0
           self.vz = 0.0
 
+          #connect signal to slots #todo: add in other on_..._update
+          self.thrusters_updated.connect(self.on_thrusters_update)
+
+          #start ros2 #todo: add in other self.ros_..._callback
+          rclpy.init()
+          self.ros_node = RobotSubscriber(
+               self.ros_thruster_callback
+          )
+
+          self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
+          self.ros_tread.start()
+
           '''#TIMER
           self.timer = QTimer()
           self.timer.timeout.connect(self.update_data)
           self.timer.start(66) #update every second'''
 
           self.init_ui() # build UI
+     
+     def ros_thruster_callback(self, msg: Float32MultiArray):
+          self.thrusters_updated.emit(list(msg.data))
+     
+     #todo: add in other callback functions
+
+     def on_thrusters_update(self, values: list):
+          self.thrusters = values
+          for i, label in enumerate(self.thruster_labels):
+               label.setText(f"{self.thrusters[i]:.1f}%")
+
+     #todo: add in other update functions
+
+     def closeEvent(self, event):
+          self.ros_node.destroy_node()
+          rclpy.shutdown()
+          event.accept()
 
 #UI LAYOUT
      def init_ui(self):
