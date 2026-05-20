@@ -11,7 +11,10 @@ def generate_launch_description():
             parameters=[{
                 'frame_id': 'odom',
                 'publish_rate': 50.0,           # [ Hz ]      
-                'lpf_cutoff': 5.0               # [ Hz ]  
+                'lpf_cutoff': 5.0,               # [ Hz ]
+                'g_ref': 9.81,                  # [ m/s^2 ]  
+                'magnetic_ref_hor': -16.7,       # [ uT ]
+                'magnetic_ref_ver': 52.5,       # [ uT ]
             }]
         )
     ])

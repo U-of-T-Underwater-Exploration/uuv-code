@@ -43,6 +43,10 @@ class StateEstimatorNode : public rclcpp::Node {
     Eigen::Vector3f w_body_;
     Eigen::Vector3f m_body_;
 
+    // World references
+    Eigen::Vector3f g_ref;
+    Eigen::Vector3f m_ref;
+
     // Transforms
     Eigen::Isometry3f T_baseToIMU_;
     Eigen::Isometry3f T_baseToCompass_;
@@ -58,7 +62,7 @@ class StateEstimatorNode : public rclcpp::Node {
          * [X] sensor_frame --> body_frame
          * [X] Correct a₆
          * [X] Make Normalized a₆ & B₆
-         * [ ] Look-up g & m 
+         * [X] Look-up g & m 
          * [ ] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
          * [ ] [pose, twist] = KF(a₆, ω₆, ori, P)
          */
@@ -79,6 +83,9 @@ class StateEstimatorNode : public rclcpp::Node {
         // Normalized vectors
         Eigen::Vector3f a_corrNorm_body = a_corrected_body_.normalized();
         Eigen::Vector3f m_norm_body = m_body_.normalized();
+
+       
+
 
         auto message = nav_msgs::msg::Odometry();
 
@@ -117,8 +124,16 @@ class StateEstimatorNode : public rclcpp::Node {
       this->declare_parameter("publish_rate", 50.0);
       this->declare_parameter("lpf_cutoff", 5.0);
 
+      // in NED frame, default Toronto, Canada
+      this->declare_parameter("g_ref", 9.81); // m/s^2
+      this->declare_parameter("magnetic_ref_hor", -16.7) // microT
+      this->declare_parameter("magnetic_ref_ver", 52.5) // microT
+
       frameId_ = this->get_parameter("frame_id").as_string();
       fp_ = this->get_parameter("publish_rate").as_double();
+      g_ref[2] = this->get_parameter("g_ref").as_double();
+      mag_ref[0] = this->get_parameter("magnetic_ref_ver").as_double();
+      mag_ref[1] = this->get_parameter("magnetic_ref_hor").as_double();
 
       // Tf
       try {
