@@ -15,6 +15,7 @@
 #include "Eigen/Dense"
 
 #include "uuv_state_estimator/imu_corrector.hpp"
+#include "uuv_state_estimator/mahony.hpp"
 
 using namespace std::chrono_literals;
 
@@ -53,6 +54,7 @@ class StateEstimatorNode : public rclcpp::Node {
 
     // Internal Tools
     IMUCorrector corrector_;
+    Eigen::Vector3f *integral_error_state;
     
     void pub_odom_callback() {
 
@@ -63,7 +65,7 @@ class StateEstimatorNode : public rclcpp::Node {
          * [X] Correct a₆
          * [X] Make Normalized a₆ & B₆
          * [X] Look-up g & m 
-         * [ ] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
+         * [X] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
          * [ ] [pose, twist] = KF(a₆, ω₆, ori, P)
          */
 
@@ -80,11 +82,26 @@ class StateEstimatorNode : public rclcpp::Node {
         //  Correct acceleration reading w/r to body
         a_corrected_body_ = corrector_.update(a_body_, w_body_);  
         
-        // Normalized vectors
-        Eigen::Vector3f a_corrNorm_body = a_corrected_body_.normalized();
-        Eigen::Vector3f m_norm_body = m_body_.normalized();
-
-       
+        // Mahony filter
+        double dt = 1.0 / fp_; 
+        MahonyResult mahony_result = mahonyFilterStep(a_corrected_body_, 
+                                w_body_, 
+                                m_body_, 
+                                q_bodyToWorld_, 
+                                dt, 
+                                g_ref, 
+                                m_ref,
+                                {
+                                  .max_iterations=1,
+                                  .Kp=2.0f,
+                                  .Ki=0.1f,
+                                  .integral_error_state=integral_error_state});
+        
+        q_bodyToWorld_ = mahony_result.next_guess;
+        // // Optionally log last error
+        // RCLCPP_INFO(this->get_logger(), "MahonyError%f%f%f",mahony_result.error[0],mahony_result.error[1],mahony_result.error[2]);
+        
+        
 
 
         auto message = nav_msgs::msg::Odometry();
