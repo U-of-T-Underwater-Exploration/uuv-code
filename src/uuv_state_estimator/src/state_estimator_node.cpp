@@ -16,6 +16,7 @@
 
 #include "uuv_state_estimator/imu_corrector.hpp"
 #include "uuv_state_estimator/mahony.hpp"
+#include "uuv_state_estimator/kalman.hpp"
 
 using namespace std::chrono_literals;
 
@@ -113,6 +114,16 @@ class StateEstimatorNode : public rclcpp::Node {
          *  Pose + Covariance
          *  Twist + Covaraiance
          */
+
+        message.header.stamp = this->get_clock()->now();
+        message.header.frame_id = "odom";
+        message.child_frame_id = "base_link";
+
+        message.pose.pose.position.x = 1.0;
+        message.pose.pose.orientation.w = 1.0;
+
+        message.twist.twist.linear.x = 0.5;
+        message.twist.twist.angular.z = 0.1;
 
         pub_odom_->publish(message);
       }
