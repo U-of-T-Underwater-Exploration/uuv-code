@@ -46,8 +46,8 @@ class StateEstimatorNode : public rclcpp::Node {
     Eigen::Vector3f m_body_;
 
     // World references
-    Eigen::Vector3f g_ref;
-    Eigen::Vector3f m_ref;
+    Eigen::Vector3f g_ref = Eigen::Vector3f(0, 0, 9.81f);
+    Eigen::Vector3f m_ref = Eigen::Vector3f(1, 0, 0);
 
     // Transforms
     Eigen::Isometry3f T_IMUToBase;
@@ -55,6 +55,7 @@ class StateEstimatorNode : public rclcpp::Node {
 
     // Internal Tools
     IMUCorrector corrector_;
+    KalmanFilter kalman_filter_;
     Eigen::Vector3f *integral_error_state;
     
     void pub_odom_callback() {
@@ -91,9 +92,11 @@ class StateEstimatorNode : public rclcpp::Node {
         q_bodyToWorld_ = mahony_result.next_guess;
         // // Optionally log last error
         // RCLCPP_INFO(this->get_logger(), "MahonyError%f%f%f",mahony_result.error[0],mahony_result.error[1],mahony_result.error[2]);
-        
-        
 
+        kalman_filter.predict(a_corrected_body_, q_bodyToWorld);
+        // Use kalmanfilter.update*() to correct drift with gps or barometer
+        /** TODO: Process and measurement variance NOT implemented */ 
+        VehicleState state = kalman_filer.getVehicleState();
 
         auto message = nav_msgs::msg::Odometry();
 
@@ -109,11 +112,11 @@ class StateEstimatorNode : public rclcpp::Node {
         message.header.frame_id = "odom";
         message.child_frame_id = "base_link";
 
-        message.pose.pose.position.x = 1.0;
-        message.pose.pose.orientation.w = 1.0;
+        message.pose.pose.position = state.position;
+        message.pose.pose.orientation = q_bodyToWorld_;
 
-        message.twist.twist.linear.x = 0.5;
-        message.twist.twist.angular.z = 0.1;
+        message.twist.twist.linear = state.linear_velocity;
+        message.twist.twist.angular = w_body_;
 
         pub_odom_->publish(message);
       }
@@ -191,7 +194,8 @@ class StateEstimatorNode : public rclcpp::Node {
         "compass/data", 10, std::bind(&StateEstimatorNode::sub_compass_callback, this, std::placeholders::_1));
 
       // Internal Tools
-      corrector_.init(fp_, (float)(this->get_parameter("lpf_cutoff").as_double()), T_baseToIMU_.translation());
+      corrector_.init(fp_, (float)(this->get_parameter("lpf_cutoff").as_double()), T_IMUToBase.translation());
+      kalman_filter_.init(fp_, g_ref);
 
       // State Variables
       q_bodyToWorld_ = Eigen::Quaternionf(1.0, 0.0, 0.0, 0.0);
