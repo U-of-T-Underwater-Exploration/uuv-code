@@ -50,8 +50,8 @@ class StateEstimatorNode : public rclcpp::Node {
     Eigen::Vector3f m_ref;
 
     // Transforms
-    Eigen::Isometry3f T_baseToIMU_;
-    Eigen::Isometry3f T_baseToCompass_;
+    Eigen::Isometry3f T_IMUToBase;
+    Eigen::Isometry3f T_CompassToBase_;
 
     // Internal Tools
     IMUCorrector corrector_;
@@ -69,16 +69,6 @@ class StateEstimatorNode : public rclcpp::Node {
          * [X] ori_ = MahonyFilter(a₆, ω₆, B₆, g, m)
          * [ ] [pose, twist] = KF(a₆, ω₆, ori, P)
          */
-
-        // ENU to NED tranformation
-        a_body_ << a_body_.y(), a_body_.x(), -a_body_.z();
-        w_body_ << w_body_.y(), w_body_.x(), -w_body_.z();
-        m_body_ << m_body_.y(), m_body_.x(), -m_body_.z();
-
-        // frame transformation
-        a_body_ = T_baseToIMU_ * a_body;
-        w_body_ = T_baseToIMU_ * w_body;
-        m_body_ = T_baseToCompass_ * m_body;
 
         //  Correct acceleration reading w/r to body
         a_corrected_body_ = corrector_.update(a_body_, w_body_);  
@@ -129,19 +119,31 @@ class StateEstimatorNode : public rclcpp::Node {
       }
 
       void sub_imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
-        a_body_ << msg->linear_acceleration.x,
-                msg->linear_acceleration.y,
-                msg->linear_acceleration.z;
-        w_body_ << msg->angular_velocity.x,
-                  msg->angular_velocity.y,
-                  msg->angular_velocity.z;
+        Eigen::Vector3f a_sensor_;
+        Eigen::Vector3f w_sensor_;
+
+        a_sensor_ << msg->linear_acceleration.y,
+                msg->linear_acceleration.x,
+                -msg->linear_acceleration.z;
+        w_sensor_ << msg->angular_velocity.y,
+                  msg->angular_velocity.x,
+                  -msg->angular_velocity.z;
+
+        // frame transformation
+        a_body_ = T_IMUToBase.linear() * a_sensor_;
+        w_body_ = T_IMUToBase.linear() * w_sensor_;
         //RCLCPP_INFO(this->get_logger(), "imu callback is working%f%f%f", acc_[0], acc_[1], acc_[2]);
       }
 
       void sub_compass_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg) {
-        m_body_ << msg->magnetic_field.x,
-                msg->magnetic_field.y,
-                msg->magnetic_field.z;
+        Eigen::Vector3f m_sensor_;
+
+        m_sensor_ << msg->magnetic_field.y,
+                msg->magnetic_field.x,
+                -msg->magnetic_field.z;
+        
+        // frame transformation
+        m_body_ = T_CompassToBase_.linear() * m_sensor_;
         //RCLCPP_INFO(this->get_logger(), "mag_callback is working%f%f%f", mag_[0], mag_[1], mag_[2]);
       }
 
@@ -168,12 +170,12 @@ class StateEstimatorNode : public rclcpp::Node {
         geometry_msgs::msg::TransformStamped tf_stamped;
 
         // Get IMU transformation
-        tf_stamped = tf_buffer_.lookupTransform("imu_link", "base_link", tf2::TimePointZero, 500ms);
-        T_baseToIMU_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
+        tf_stamped = tf_buffer_.lookupTransform("base_link", "imu_link", tf2::TimePointZero, 500ms);
+        T_IMUToBase_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
 
         // Get Compass transformation
-        tf_stamped = tf_buffer_.lookupTransform("compass_link", "base_link", tf2::TimePointZero, 500ms);
-        T_baseToCompass_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
+        tf_stamped = tf_buffer_.lookupTransform("base_link", "compass_link", tf2::TimePointZero, 500ms);
+        T_CompassToBase_ = (tf2::transformToEigen(tf_stamped)).cast<float>();
       }
       catch (tf2::TransformException &ex){  // TF Fail report
         RCLCPP_WARN(this->get_logger(), "Couldn't get TF: [%s]", ex.what());
