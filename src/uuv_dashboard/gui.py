@@ -2,6 +2,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import Temperature
 
 import threading
 import cv2
@@ -13,6 +14,7 @@ class RobotSubscriber(Node): #Todo:Update to include other topics
      def __init__(self, thruster_callback):
           super().__init__('battery_gui_subscriber')
 
+          self.create_subscription(Temperature, 'baro/external/temperature', external_temperature_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
 
 class RobotGUI(QWidget):
@@ -31,15 +33,12 @@ class RobotGUI(QWidget):
           self.thrusters = [0.0] * 8
 
           self.internal_temp = 0.0
-          self.battery_temp = 0.0
+          self.external_temp = 0.0
+          self.bms_temp = 0.0
 
           self.x = 0.0
           self.y = 0.0
           self.z = 0.0
-
-          self.vx = 0.0
-          self.vy = 0.0
-          self.vz = 0.0
 
           #connect signal to slots #todo: add in other on_..._update
           self.thrusters_updated.connect(self.on_thrusters_update)
@@ -144,11 +143,14 @@ class RobotGUI(QWidget):
           temp_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
           self.internal_temp_label = QLabel(f"Internal: {self.internal_temp:.1f} °C")
-          self.battery_temp_label = QLabel(f"Battery: {self.battery_temp:.1f} °C")
+          self.external_temp_label = QLabel(f"External: {self.external_temp:1f} °C")
+          self.bms_temp_label = QLabel(f"Battery: {self.bms_temp:.1f} °C")
 
           right_col.addWidget(temp_title)
           right_col.addWidget(self.internal_temp_label)
-          right_col.addWidget(self.battery_temp_label)
+          right_col.addWidget(self.external_temp_label)
+          right_col.addWidget(self.bsm_temp_label)
+          
 
           right_col.addSpacing(20)
 
