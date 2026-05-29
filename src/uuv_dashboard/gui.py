@@ -2,7 +2,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from sensor_msgs.msg import Temperature
+from sensor_msgs.msg import Temperature, FluidPressure
 
 import threading
 import cv2
@@ -16,10 +16,12 @@ class RobotSubscriber(Node): #Todo:Update to include other topics
 
           self.create_subscription(Temperature, 'baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
+          self.create_subscription(Float32MultiArray, 'baro/external/data', external_pressure_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
      external_temp_updated = pyqtSignal(float)
+     external_pressure_updated = pyqtSignal(float)
      
      
      def __init__(self):
@@ -42,15 +44,19 @@ class RobotGUI(QWidget):
           self.y = 0.0
           self.z = 0.0
 
+          self.external_pressure = 0.0
+
           #connect signal to slots #todo: add in other on_..._update
           self.thrusters_updated.connect(self.on_thrusters_update)
           self.external_temp_updated.connect(self.on_external_temp_update)
+          self.external_pressure_updated.connect(self.on_external_pressure_update)
 
           #start ros2 #todo: add in other self.ros_..._callback
           rclpy.init()
           self.ros_node = RobotSubscriber(
                self.ros_thruster_callback,
-               self.ros_external_temp_callback
+               self.ros_external_temp_callback,
+               self.ros_external_pressure_callback
           )
 
           self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
@@ -63,6 +69,9 @@ class RobotGUI(QWidget):
 
      def ros_external_temp_callback(self, msg: Temperature):
           self.external_temp_updated.emit(float(msg.temperature))
+
+     def ros_external_pressure_callback(self, msg: FluidPressure):
+          self.external_pressure_updated.emit(float(msg.fluid_pressure))
      
      #todo: add in other callback functions
 
@@ -73,7 +82,11 @@ class RobotGUI(QWidget):
 
      def on_external_temp_update(self, value: float):
           self.external_temp = value
-          self.external_temp_label.setText(f"External {self.ext_temp:.1f} °C") 
+          self.external_temp_label.setText(f"External {self.external_temp:.1f} °C") 
+
+     def on_external_pressure_update(self, value: float):
+          self.external_pressure = value
+          self.external_pressure_label.setText(f"External {self.external_pressure:.1f} Pa")
 
      #todo: add in other update functions
 
@@ -161,25 +174,23 @@ class RobotGUI(QWidget):
           right_col.addSpacing(20)
 
         #position and velocity
-          pos_title = QLabel("Position and Velocity")
+          pos_title = QLabel("Position and Fluid Pressure")
           pos_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
           self.x_label = QLabel(f"X: {self.x:.2f}")
           self.y_label = QLabel(f"Y: {self.y:.2f}")
           self.z_label = QLabel(f"Z: {self.z:.2f}")
 
-          self.vx_label = QLabel(f"Vx: {self.vx:.2f}")
-          self.vy_label = QLabel(f"Vy: {self.vy:.2f}")
-          self.vz_label = QLabel(f"Vz: {self.vz:.2f}")
+          self.external_pressure_label = QLabel(f"Fluid Pressure: {self.external_pressure:.2f} Pa")
+
 
           right_col.addWidget(pos_title)
           right_col.addWidget(self.x_label)
           right_col.addWidget(self.y_label)
           right_col.addWidget(self.z_label)
           right_col.addSpacing(10)
-          right_col.addWidget(self.vx_label)
-          right_col.addWidget(self.vy_label)
-          right_col.addWidget(self.vz_label)
+          right_col.addWidget(self.external_pressure_label)
+          
 
 #CAMERA COLUMN
           camera_col = QVBoxLayout()
