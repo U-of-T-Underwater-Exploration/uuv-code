@@ -14,11 +14,13 @@ class RobotSubscriber(Node): #Todo:Update to include other topics
      def __init__(self, thruster_callback):
           super().__init__('battery_gui_subscriber')
 
-          self.create_subscription(Temperature, 'baro/external/temperature', external_temperature_callback, 10)
+          self.create_subscription(Temperature, 'baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
+     external_temp_updated = pyqtSignal(float)
+     
      
      def __init__(self):
           super().__init__()
@@ -42,25 +44,25 @@ class RobotGUI(QWidget):
 
           #connect signal to slots #todo: add in other on_..._update
           self.thrusters_updated.connect(self.on_thrusters_update)
+          self.external_temp_updated.connect(self.on_external_temp_update)
 
           #start ros2 #todo: add in other self.ros_..._callback
           rclpy.init()
           self.ros_node = RobotSubscriber(
-               self.ros_thruster_callback
+               self.ros_thruster_callback,
+               self.ros_external_temp_callback
           )
 
           self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
           self.ros_tread.start()
 
-          '''#TIMER
-          self.timer = QTimer()
-          self.timer.timeout.connect(self.update_data)
-          self.timer.start(66) #update every second'''
-
           self.init_ui() # build UI
      
      def ros_thruster_callback(self, msg: Float32MultiArray):
           self.thrusters_updated.emit(list(msg.data))
+
+     def ros_external_temp_callback(self, msg: Temperature):
+          self.external_temp_updated.emit(float(msg.temperature))
      
      #todo: add in other callback functions
 
@@ -68,6 +70,10 @@ class RobotGUI(QWidget):
           self.thrusters = values
           for i, label in enumerate(self.thruster_labels):
                label.setText(f"{self.thrusters[i]:.1f}%")
+
+     def on_external_temp_update(self, value: float):
+          self.external_temp = value
+          self.external_temp_label.setText(f"External {self.ext_temp:.1f} °C") 
 
      #todo: add in other update functions
 
