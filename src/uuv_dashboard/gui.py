@@ -11,12 +11,12 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QImage
 
 class RobotSubscriber(Node): #Todo:Update to include other topics
-     def __init__(self, thruster_callback):
+     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback):
           super().__init__('battery_gui_subscriber')
 
           self.create_subscription(Temperature, 'baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
-          self.create_subscription(Float32MultiArray, 'baro/external/data', external_pressure_callback, 10)
+          self.create_subscription(FluidPressure, 'baro/external/data', external_pressure_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
@@ -52,15 +52,14 @@ class RobotGUI(QWidget):
           self.external_pressure_updated.connect(self.on_external_pressure_update)
 
           #start ros2 #todo: add in other self.ros_..._callback
-          rclpy.init()
           self.ros_node = RobotSubscriber(
-               self.ros_thruster_callback,
                self.ros_external_temp_callback,
+               self.ros_thruster_callback,
                self.ros_external_pressure_callback
           )
 
           self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
-          self.ros_tread.start()
+          self.ros_thread.start()
 
           self.init_ui() # build UI
      
@@ -162,13 +161,13 @@ class RobotGUI(QWidget):
           temp_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
           self.internal_temp_label = QLabel(f"Internal: {self.internal_temp:.1f} °C")
-          self.external_temp_label = QLabel(f"External: {self.external_temp:1f} °C")
+          self.external_temp_label = QLabel(f"External: {self.external_temp:.1f} °C")
           self.bms_temp_label = QLabel(f"Battery: {self.bms_temp:.1f} °C")
 
           right_col.addWidget(temp_title)
           right_col.addWidget(self.internal_temp_label)
           right_col.addWidget(self.external_temp_label)
-          right_col.addWidget(self.bsm_temp_label)
+          right_col.addWidget(self.bms_temp_label)
           
 
           right_col.addSpacing(20)
@@ -225,7 +224,6 @@ class RobotGUI(QWidget):
           main_layout.setStretch(2,2)
           main_layout.setStretch(4,2)
           main_layout.setStretch(6,2)
-          main_layout.setStretch(8,3)
 
           self.setLayout(main_layout)
 
@@ -262,6 +260,7 @@ class RobotGUI(QWidget):
         self.batterytemperature = random.uniform(20, 30)'''
 
 if __name__ == "__main__":
+     rclpy.init()
      app = QApplication(sys.argv)
      window = RobotGUI()
      window.show()
