@@ -28,23 +28,25 @@ class RobotGUI(QWidget):
           super().__init__()
 
 # INITIALIZE VALUES
-          self.batterypercent = 0.0
+          self.TotalV= 0.0
           self.cells = [0.0] * 8
 
-          self.V = 0.0
+          self.battery_capacity= 0.0
           self.I = 0.0
 
           self.thrusters = [0.0] * 8
 
           self.internal_temp = 0.0
           self.external_temp = 0.0
-          self.bms_temp = 0.0
+          self.bms_temp_1 = 0.0
+          self.bms_temp_2 = 0.0
+          self.bms_temp_3 = 0.0
 
           self.x = 0.0
           self.y = 0.0
-          self.z = 0.0
 
           self.external_pressure = 0.0
+          self.internal_pressure = 0.0
 
           #connect signal to slots #todo: add in other on_..._update
           self.thrusters_updated.connect(self.on_thrusters_update)
@@ -108,26 +110,42 @@ class RobotGUI(QWidget):
           title.setStyleSheet("font-size: 18px; font-weight: bold;")
           battery_col.addWidget(title)
 
-        #main battery
-          battery_col.addWidget(QLabel("Battery"))
-          self.battery_bar = self.make_bar(self.batterypercent)
-          battery_col.addWidget(self.battery_bar)
+        #TotalV
+          self.TotalV_label = QLabel(f"Total Voltage: {self.TotalV:.2f} V")
+          battery_col.addWidget(self.TotalV_label)
 
         #cells
-          self.cell_bars = []
-          for i in range(8):
-               battery_col.addWidget(QLabel(f"Cell {i+1}"))
-               bar = self.make_bar(self.cells[i])
-               self.cell_bars.append(bar)
-               battery_col.addWidget(bar)
+          self.cell_1_label = QLabel(f"Cell 1: {self.cells[0]} V")
+          battery_col.addWidget(self.cell_1_label)
 
+          self.cell_2_label = QLabel(f"Cell 2: {self.cells[1]} V")
+          battery_col.addWidget(self.cell_2_label)
+
+          self.cell_3_label = QLabel(f"Cell 3: {self.cells[2]} V")
+          battery_col.addWidget(self.cell_3_label)
+
+          self.cell_4_label = QLabel(f"Cell 4: {self.cells[3]} V")
+          battery_col.addWidget(self.cell_4_label)
+
+          self.cell_5_label = QLabel(f"Cell 5: {self.cells[4]} V")
+          battery_col.addWidget(self.cell_5_label)
+
+          self.cell_6_label = QLabel(f"Cell 6: {self.cells[5]} V")
+          battery_col.addWidget(self.cell_6_label)
+
+          self.cell_7_label = QLabel(f"Cell 7: {self.cells[6]} V")
+          battery_col.addWidget(self.cell_7_label)
+
+          self.cell_8_label = QLabel(f"Cell 8: {self.cells[7]} V")
+          battery_col.addWidget(self.cell_8_label)
+          
           battery_col.addSpacing(10)
 
-          self.voltage_label = QLabel(f"Voltage: {self.V:.2f} V")
           self.current_label = QLabel(f"Current: {self.I:.2f} A")
+          self.battery_capacity_label = QLabel(f"Remaining Capacity: {self.battery_capacity} %")
 
-          battery_col.addWidget(self.voltage_label)
           battery_col.addWidget(self.current_label)
+          battery_col.addWidget(self.battery_capacity_label)
 
 #MIDDLE COLUMN
           thruster_col = QVBoxLayout()
@@ -162,48 +180,54 @@ class RobotGUI(QWidget):
 
           self.internal_temp_label = QLabel(f"Internal: {self.internal_temp:.1f} °C")
           self.external_temp_label = QLabel(f"External: {self.external_temp:.1f} °C")
-          self.bms_temp_label = QLabel(f"Battery: {self.bms_temp:.1f} °C")
+          self.bms_temp_1_label = QLabel(f"Battery (probe 1): {self.bms_temp_1:.1f} °C")
+          self.bms_temp_2_label = QLabel(f"Battery (probe 2): {self.bms_temp_2:.1f} °C")
+          self.bms_temp_3_label = QLabel(f"Battery (probe 3): {self.bms_temp_3:.1f} °C")
 
           right_col.addWidget(temp_title)
           right_col.addWidget(self.internal_temp_label)
           right_col.addWidget(self.external_temp_label)
-          right_col.addWidget(self.bms_temp_label)
+          right_col.addWidget(self.bms_temp_1_label)
+          right_col.addWidget(self.bms_temp_2_label)
+          right_col.addWidget(self.bms_temp_3_label)
           
 
-          right_col.addSpacing(20)
+          right_col.addSpacing(10)
+
+          #pressures
+          pressure_title = QLabel("Pressure")
+          pressure_title.setStyleSheet("font-size: 18px; font-weight: bold;")
+
+          self.internal_pressure_label = QLabel(f"Internal: {self.internal_pressure:.1f} Pa")
+          self.external_pressure_label = QLabel(f"External: {self.external_pressure:.1f} Pa")
+
+          right_col.addWidget(pressure_title)
+          right_col.addWidget(self.internal_pressure_label)
+          right_col.addWidget(self.external_pressure_label)
+          
+          right_col.addSpacing(10)
+
 
         #position and velocity
-          pos_title = QLabel("Position and Fluid Pressure")
+          pos_title = QLabel("Position")
           pos_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
           self.x_label = QLabel(f"X: {self.x:.2f}")
           self.y_label = QLabel(f"Y: {self.y:.2f}")
-          self.z_label = QLabel(f"Z: {self.z:.2f}")
-
-          self.external_pressure_label = QLabel(f"Fluid Pressure: {self.external_pressure:.2f} Pa")
 
 
           right_col.addWidget(pos_title)
           right_col.addWidget(self.x_label)
           right_col.addWidget(self.y_label)
-          right_col.addWidget(self.z_label)
-          right_col.addSpacing(10)
-          right_col.addWidget(self.external_pressure_label)
           
 
 #CAMERA COLUMN
           camera_col = QVBoxLayout()
 
-        #WHALESHARK
-          self.whaleshark = QLabel()
-          pixmap = QPixmap("./Assets/Whaleshark.png")
-          scaled_pixmap = pixmap.scaledToWidth(100,Qt.TransformationMode.SmoothTransformation)
-          self.whaleshark.setPixmap(scaled_pixmap)
-          camera_col.addWidget(self.whaleshark)
+          camera_title = QLabel("Camera")
+          camera_title.setStyleSheet("font-size: 18px; font-weight: bold;")
+          camera_col.addWidget(camera_title)
 
-          Camera_title = QLabel("Camera")
-          Camera_title.setStyleSheet("font-size: 18px; font-weight: bold;")
-          camera_col.addWidget(Camera_title)
         
 
 # VERTICAL SEPARATORS
@@ -220,7 +244,7 @@ class RobotGUI(QWidget):
           main_layout.addLayout(camera_col)
 
 
-          main_layout.setStretch(0,3)
+          main_layout.setStretch(0,2)
           main_layout.setStretch(2,2)
           main_layout.setStretch(4,2)
           main_layout.setStretch(6,2)
