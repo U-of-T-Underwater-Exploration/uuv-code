@@ -54,6 +54,9 @@ static const uint8_t BMS_READ_ALL_CMD[] = {
 };
 static constexpr size_t BMS_CMD_LEN = sizeof(BMS_READ_ALL_CMD);
 
+static const uint8_t BMS_PAIRING_CMD[] = {0x05};
+static constexpr size_t PAIRING_CMD_LEN = sizeof(BMS_PAIRING_CMD);
+
 // Maximum expected response size.  A full 24-cell frame is ~320 bytes;
 // 512 gives comfortable headroom.
 static constexpr size_t READ_BUF_SIZE = 512;
@@ -200,6 +203,14 @@ private:
         // Discard stale data before sending the request
         tcflush(serial_fd_, TCIFLUSH);
 
+        // pairing command
+        ssize_t pairing_written = write(serial_fd_, BMS_PAIRING_CMD, PAIRING_CMD_LEN);
+        if (pairing_written != static_cast<ssize_t>(PAIRING_CMD_LEN)) {
+            RCLCPP_ERROR(this->get_logger(),
+                "Pairing failed (wrote %zd of %zu bytes): %s",
+                pairing_written, PAIRING_CMD_LEN, std::strerror(errno));
+            return false;
+        }
         // ---- Send request --------------------------------------------------
         ssize_t written = write(serial_fd_, BMS_READ_ALL_CMD, BMS_CMD_LEN);
         if (written != static_cast<ssize_t>(BMS_CMD_LEN)) {
