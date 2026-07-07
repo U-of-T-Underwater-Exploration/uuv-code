@@ -1,6 +1,7 @@
 #ifndef BMS_PARSER_HPP
 #define BMS_PARSER_HPP
 
+#include <cstddef>
 #include <vector>
 #include <cstdint>
 
