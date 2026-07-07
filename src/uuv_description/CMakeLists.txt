@@ -3,7 +3,6 @@ project(uuv_description)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(xacro REQUIRED)
 
 # Install URDF
 install(
