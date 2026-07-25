@@ -11,14 +11,14 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QImage
 
 class RobotSubscriber(Node): #Todo:Update to include other topics
-     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback):
+     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback, bms_temperature_callback):
           super().__init__('battery_gui_subscriber')
 
           self.create_subscription(Temperature, '/baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
           self.create_subscription(FluidPressure, '/baro/external/data', external_pressure_callback, 10)
           self.create_subscription(BatteryState, '/bms/data', bms_callback, 10)
-          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_callback, 10)
+          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_temperature_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
@@ -99,11 +99,34 @@ class RobotGUI(QWidget):
 
      def on_external_temp_update(self, value: float):
           self.external_temp = value
-          self.external_temp_label.setText(f"External {self.external_temp:.1f} °C") 
+          self.external_temp_label.setText(f"External:{self.external_temp:.1f} °C") 
 
      def on_external_pressure_update(self, value: float):
           self.external_pressure = value
-          self.external_pressure_label.setText(f"External {self.external_pressure:.1f} Pa")
+          self.external_pressure_label.setText(f"External:{self.external_pressure:.1f} Pa")
+
+     def on_cells_update(self, values: list):
+          self.cells = values
+          self.cell_1_label.setText(f"Cell 1:{self.cells[0]:.1f} V")
+          self.cell_2_label.setText(f"Cell 2:{self.cells[1]:.1f} V")
+          self.cell_3_label.setText(f"Cell 3:{self.cells[2]:.1f} V")
+          self.cell_4_label.setText(f"Cell 4:{self.cells[3]:.1f} V")
+          self.cell_5_label.setText(f"Cell 5:{self.cells[4]:.1f} V")
+          self.cell_6_label.setText(f"Cell 6:{self.cells[5]:.1f} V")
+          self.cell_7_label.setText(f"Cell 7:{self.cells[6]:.1f} V")
+          self.cell_8_label.setText(f"Cell 8:{self.cells[7]:.1f} V")
+
+     def on_TotalV_update(self, value: float):
+          self.TotalV = value
+          self.TotalV_label.setText(f"Total Voltage:{self.TotalV:.2f} V")
+
+     def on_battery_capacity_update(self, value: float):
+          self.battery_capacity = value
+          self.battery_capacity_label.setText(f"Remaining Capacity:{self.battery_capacity} %")
+
+     def on_I_update(self, value: float):
+          self.I = value
+          self.current_label.setText(f"Current:{self.I:.2f} A")
 
 
      #todo: add in other update functions
@@ -128,38 +151,38 @@ class RobotGUI(QWidget):
           battery_col.addWidget(title)
 
         #TotalV
-          self.TotalV_label = QLabel(f"Total Voltage: {self.TotalV:.2f} V")
+          self.TotalV_label = QLabel(f"Total Voltage:{self.TotalV:.2f} V")
           battery_col.addWidget(self.TotalV_label)
 
         #cells
-          self.cell_1_label = QLabel(f"Cell 1: {self.cells[0]} V")
+          self.cell_1_label = QLabel(f"Cell 1:{self.cells[0]} V")
           battery_col.addWidget(self.cell_1_label)
 
-          self.cell_2_label = QLabel(f"Cell 2: {self.cells[1]} V")
+          self.cell_2_label = QLabel(f"Cell 2:{self.cells[1]} V")
           battery_col.addWidget(self.cell_2_label)
 
-          self.cell_3_label = QLabel(f"Cell 3: {self.cells[2]} V")
+          self.cell_3_label = QLabel(f"Cell 3:{self.cells[2]} V")
           battery_col.addWidget(self.cell_3_label)
 
-          self.cell_4_label = QLabel(f"Cell 4: {self.cells[3]} V")
+          self.cell_4_label = QLabel(f"Cell 4:{self.cells[3]} V")
           battery_col.addWidget(self.cell_4_label)
 
-          self.cell_5_label = QLabel(f"Cell 5: {self.cells[4]} V")
+          self.cell_5_label = QLabel(f"Cell 5:{self.cells[4]} V")
           battery_col.addWidget(self.cell_5_label)
 
-          self.cell_6_label = QLabel(f"Cell 6: {self.cells[5]} V")
+          self.cell_6_label = QLabel(f"Cell 6:{self.cells[5]} V")
           battery_col.addWidget(self.cell_6_label)
 
-          self.cell_7_label = QLabel(f"Cell 7: {self.cells[6]} V")
+          self.cell_7_label = QLabel(f"Cell 7:{self.cells[6]} V")
           battery_col.addWidget(self.cell_7_label)
 
-          self.cell_8_label = QLabel(f"Cell 8: {self.cells[7]} V")
+          self.cell_8_label = QLabel(f"Cell 8:{self.cells[7]} V")
           battery_col.addWidget(self.cell_8_label)
           
           battery_col.addSpacing(10)
 
-          self.current_label = QLabel(f"Current: {self.I:.2f} A")
-          self.battery_capacity_label = QLabel(f"Remaining Capacity: {self.battery_capacity} %")
+          self.current_label = QLabel(f"Current:{self.I:.2f} A")
+          self.battery_capacity_label = QLabel(f"Remaining Capacity:{self.battery_capacity} %")
 
           battery_col.addWidget(self.current_label)
           battery_col.addWidget(self.battery_capacity_label)
@@ -195,11 +218,11 @@ class RobotGUI(QWidget):
           temp_title = QLabel("Temperature")
           temp_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
-          self.internal_temp_label = QLabel(f"Internal: {self.internal_temp:.1f} °C")
-          self.external_temp_label = QLabel(f"External: {self.external_temp:.1f} °C")
-          self.bms_temp_1_label = QLabel(f"Battery (probe 1): {self.bms_temp_1:.1f} °C")
-          self.bms_temp_2_label = QLabel(f"Battery (probe 2): {self.bms_temp_2:.1f} °C")
-          self.bms_temp_3_label = QLabel(f"Battery (probe 3): {self.bms_temp_3:.1f} °C")
+          self.internal_temp_label = QLabel(f"Internal:{self.internal_temp:.1f} °C")
+          self.external_temp_label = QLabel(f"External:{self.external_temp:.1f} °C")
+          self.bms_temp_1_label = QLabel(f"Battery (probe 1):{self.bms_temp_1:.1f} °C")
+          self.bms_temp_2_label = QLabel(f"Battery (probe 2):{self.bms_temp_2:.1f} °C")
+          self.bms_temp_3_label = QLabel(f"Battery (probe 3):{self.bms_temp_3:.1f} °C")
 
           right_col.addWidget(temp_title)
           right_col.addWidget(self.internal_temp_label)
@@ -215,8 +238,8 @@ class RobotGUI(QWidget):
           pressure_title = QLabel("Pressure")
           pressure_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
-          self.internal_pressure_label = QLabel(f"Internal: {self.internal_pressure:.1f} Pa")
-          self.external_pressure_label = QLabel(f"External: {self.external_pressure:.1f} Pa")
+          self.internal_pressure_label = QLabel(f"Internal:{self.internal_pressure:.1f} Pa")
+          self.external_pressure_label = QLabel(f"External:{self.external_pressure:.1f} Pa")
 
           right_col.addWidget(pressure_title)
           right_col.addWidget(self.internal_pressure_label)
@@ -229,8 +252,8 @@ class RobotGUI(QWidget):
           pos_title = QLabel("Position")
           pos_title.setStyleSheet("font-size: 18px; font-weight: bold;")
 
-          self.x_label = QLabel(f"X: {self.x:.2f}")
-          self.y_label = QLabel(f"Y: {self.y:.2f}")
+          self.x_label = QLabel(f"X:{self.x:.2f}")
+          self.y_label = QLabel(f"Y:{self.y:.2f}")
 
 
           right_col.addWidget(pos_title)
