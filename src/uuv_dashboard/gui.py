@@ -11,14 +11,16 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QImage
 
 class RobotSubscriber(Node): #Todo:Update to include other topics
-     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback, bms_temperature_callback):
+     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback, bms_temp_callback, internal_pressure_callback, internal_temp_callback):
           super().__init__('battery_gui_subscriber')
 
           self.create_subscription(Temperature, '/baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
           self.create_subscription(FluidPressure, '/baro/external/data', external_pressure_callback, 10)
           self.create_subscription(BatteryState, '/bms/data', bms_callback, 10)
-          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_temperature_callback, 10)
+          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_temp_callback, 10)
+          self.create_subscription(FluidPressure, '/baro/internal/data', internal_pressure_callback, 10)
+          self.create_subscription(Temperature, '/baro/internal/temperature', internal_temp_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
@@ -37,11 +39,11 @@ class RobotGUI(QWidget):
           self.cells = [0.0] * 8
 
           self.battery_capacity= 0.0
-          self.I = 0.0
+          self.I = 0.0 
 
           self.thrusters = [0.0] * 8
 
-          self.internal_temp = 0.0
+          self.internal_temp = 0.0 
           self.external_temp = 0.0
           self.bms_temp_1 = 0.0
           self.bms_temp_2 = 0.0
@@ -89,6 +91,9 @@ class RobotGUI(QWidget):
           self.TotalV_updated.emit(float(msg.voltage))
           self.battery_capacity_updated.emit(float(msg.design_capacity))
           self.I_updated.emit(float(msg.current))
+
+     def ros_bms_temperature_callback(self, msg: Float32MultiArray):
+          #todo: finish function
      
      #todo: add in other callback functions
 
@@ -118,7 +123,7 @@ class RobotGUI(QWidget):
 
      def on_TotalV_update(self, value: float):
           self.TotalV = value
-          self.TotalV_label.setText(f"Total Voltage:{self.TotalV:.2f} V")
+          self.TotalV_label.setText(f"Total Voltage:{self.TotalV:.1f} V")
 
      def on_battery_capacity_update(self, value: float):
           self.battery_capacity = value
@@ -126,7 +131,7 @@ class RobotGUI(QWidget):
 
      def on_I_update(self, value: float):
           self.I = value
-          self.current_label.setText(f"Current:{self.I:.2f} A")
+          self.current_label.setText(f"Current:{self.I:.1f} A")
 
 
      #todo: add in other update functions
@@ -151,7 +156,7 @@ class RobotGUI(QWidget):
           battery_col.addWidget(title)
 
         #TotalV
-          self.TotalV_label = QLabel(f"Total Voltage:{self.TotalV:.2f} V")
+          self.TotalV_label = QLabel(f"Total Voltage:{self.TotalV:.1f} V")
           battery_col.addWidget(self.TotalV_label)
 
         #cells
@@ -181,9 +186,9 @@ class RobotGUI(QWidget):
           
           battery_col.addSpacing(10)
 
-          self.current_label = QLabel(f"Current:{self.I:.2f} A")
+          self.current_label = QLabel(f"Current:{self.I:.1f} A")
           self.battery_capacity_label = QLabel(f"Remaining Capacity:{self.battery_capacity} %")
-
+          
           battery_col.addWidget(self.current_label)
           battery_col.addWidget(self.battery_capacity_label)
 
