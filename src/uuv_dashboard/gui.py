@@ -2,7 +2,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from sensor_msgs.msg import Temperature, FluidPressure
+from sensor_msgs.msg import Temperature, FluidPressure, BatteryState
 
 import threading
 import cv2
@@ -11,18 +11,23 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QImage
 
 class RobotSubscriber(Node): #Todo:Update to include other topics
-     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback):
+     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback):
           super().__init__('battery_gui_subscriber')
 
-          self.create_subscription(Temperature, 'baro/external/temperature', external_temp_callback, 10)
+          self.create_subscription(Temperature, '/baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
-          self.create_subscription(FluidPressure, 'baro/external/data', external_pressure_callback, 10)
+          self.create_subscription(FluidPressure, '/baro/external/data', external_pressure_callback, 10)
+          self.create_subscription(BatteryState, '/bms/data', bms_callback, 10)
+          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_callback, 10)
 
 class RobotGUI(QWidget):
      thrusters_updated = pyqtSignal(list)
      external_temp_updated = pyqtSignal(float)
      external_pressure_updated = pyqtSignal(float)
-     
+     cells_updated = pyqtSignal(list)
+     TotalV_updated = pyqtSignal(float)
+     battery_capacity_updated = pyqtSignal(float)
+     I_updated = pyqtSignal(float)
      
      def __init__(self):
           super().__init__()
@@ -52,12 +57,17 @@ class RobotGUI(QWidget):
           self.thrusters_updated.connect(self.on_thrusters_update)
           self.external_temp_updated.connect(self.on_external_temp_update)
           self.external_pressure_updated.connect(self.on_external_pressure_update)
+          self.cells_updated.connect(self.on_cells_update)
+          self.TotalV_updated.connect(self.on_TotalV_update)
+          self.battery_capacity_updated.connect(self.on_battery_capacity_update)
+          self.I_updated.connect(self.on_I_update)
 
           #start ros2 #todo: add in other self.ros_..._callback
           self.ros_node = RobotSubscriber(
                self.ros_external_temp_callback,
                self.ros_thruster_callback,
-               self.ros_external_pressure_callback
+               self.ros_external_pressure_callback,
+               self.ros_bms_callback,
           )
 
           self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
@@ -73,6 +83,12 @@ class RobotGUI(QWidget):
 
      def ros_external_pressure_callback(self, msg: FluidPressure):
           self.external_pressure_updated.emit(float(msg.fluid_pressure))
+
+     def ros_bms_callback(self, msg: BatteryState):
+          self.cells_updated.emit(list(msg.cell_voltage))
+          self.TotalV_updated.emit(float(msg.voltage))
+          self.battery_capacity_updated.emit(float(msg.design_capacity))
+          self.I_updated.emit(float(msg.current))
      
      #todo: add in other callback functions
 
@@ -88,6 +104,7 @@ class RobotGUI(QWidget):
      def on_external_pressure_update(self, value: float):
           self.external_pressure = value
           self.external_pressure_label.setText(f"External {self.external_pressure:.1f} Pa")
+
 
      #todo: add in other update functions
 
