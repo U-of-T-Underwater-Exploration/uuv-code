@@ -10,15 +10,15 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel,QVBoxLayout, QHBoxLay
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QImage
 
-class RobotSubscriber(Node): #Todo:Update to include other topics
-     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback, bms_temp_callback, internal_pressure_callback, internal_temp_callback):
+class RobotSubscriber(Node): #ADD ALL SUBSCRIPTIONS
+     def __init__(self, external_temp_callback, thruster_callback, external_pressure_callback, bms_callback, bms_temps_callback, internal_pressure_callback, internal_temp_callback):
           super().__init__('battery_gui_subscriber')
 
           self.create_subscription(Temperature, '/baro/external/temperature', external_temp_callback, 10)
           self.create_subscription(Float32MultiArray, '/thruster/command', thruster_callback, 10)
           self.create_subscription(FluidPressure, '/baro/external/data', external_pressure_callback, 10)
           self.create_subscription(BatteryState, '/bms/data', bms_callback, 10)
-          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_temp_callback, 10)
+          self.create_subscription(Float32MultiArray, '/bms/temperature', bms_temps_callback, 10)
           self.create_subscription(FluidPressure, '/baro/internal/data', internal_pressure_callback, 10)
           self.create_subscription(Temperature, '/baro/internal/temperature', internal_temp_callback, 10)
 
@@ -30,6 +30,10 @@ class RobotGUI(QWidget):
      TotalV_updated = pyqtSignal(float)
      battery_capacity_updated = pyqtSignal(float)
      I_updated = pyqtSignal(float)
+     bms_temps_updated = pyqtSignal(list)
+     internal_temp_updated = pyqtSignal(float)
+     internal_pressure_updated = pyqtSignal(float)
+
      
      def __init__(self):
           super().__init__()
@@ -45,9 +49,7 @@ class RobotGUI(QWidget):
 
           self.internal_temp = 0.0 
           self.external_temp = 0.0
-          self.bms_temp_1 = 0.0
-          self.bms_temp_2 = 0.0
-          self.bms_temp_3 = 0.0
+          self.bms_temps = [0.0] * 3
 
           self.x = 0.0
           self.y = 0.0
@@ -55,7 +57,7 @@ class RobotGUI(QWidget):
           self.external_pressure = 0.0
           self.internal_pressure = 0.0
 
-          #connect signal to slots #todo: add in other on_..._update
+          #connect signal to slots
           self.thrusters_updated.connect(self.on_thrusters_update)
           self.external_temp_updated.connect(self.on_external_temp_update)
           self.external_pressure_updated.connect(self.on_external_pressure_update)
@@ -63,20 +65,26 @@ class RobotGUI(QWidget):
           self.TotalV_updated.connect(self.on_TotalV_update)
           self.battery_capacity_updated.connect(self.on_battery_capacity_update)
           self.I_updated.connect(self.on_I_update)
+          self.bms_temps_updated.connect(self.on_bms_temps_update)
+          self.internal_temp_updated.connect(self.on_internal_temp_update)
+          self.internal_pressure_updated.connect(Self.internal_pressure_update)
 
-          #start ros2 #todo: add in other self.ros_..._callback
           self.ros_node = RobotSubscriber(
                self.ros_external_temp_callback,
                self.ros_thruster_callback,
                self.ros_external_pressure_callback,
                self.ros_bms_callback,
+               self.ros_bms_temps_callback,
+               self.ros_internal_pressure_callback,
+               self.ros_internal_temp_callback
           )
 
           self.ros_thread = threading.Thread(target=rclpy.spin, args=(self.ros_node,), daemon=True)
           self.ros_thread.start()
 
           self.init_ui() # build UI
-     
+
+     #CALLBACK FUNCTIONS
      def ros_thruster_callback(self, msg: Float32MultiArray):
           self.thrusters_updated.emit(list(msg.data))
 
@@ -92,11 +100,17 @@ class RobotGUI(QWidget):
           self.battery_capacity_updated.emit(float(msg.design_capacity))
           self.I_updated.emit(float(msg.current))
 
-     def ros_bms_temperature_callback(self, msg: Float32MultiArray):
-          #todo: finish function
-     
-     #todo: add in other callback functions
+     def ros_bms_temps_callback(self, msg: Float32MultiArray):
+          self.bms_temps_updated.emit(list(msg.data))
 
+     def ros_internal_pressure_callback(self, msg: FluidPressure):
+          self.internal_pressure_updated.emit(float(msg.fluid_pressure))
+
+     def ros_internal_temp_callback(self, msg: Temperature):
+          self.internal_temp_updated.emit(float(msg.temperature))
+
+     
+     #UPDATE TEXT ON GUI
      def on_thrusters_update(self, values: list):
           self.thrusters = values
           for i, label in enumerate(self.thruster_labels):
@@ -133,9 +147,21 @@ class RobotGUI(QWidget):
           self.I = value
           self.current_label.setText(f"Current:{self.I:.1f} A")
 
+     def on_bms_temps_update(self, values: list):
+          self.bms_temps = values
+          self.bms_temp_1_label.setText(f"Battery (probe 1):{self.bms_temps[0]:.1f} °C")
+          self.bms_temp_2_label.setText(f"Battery (probe 2):{self.bms_temp[1]:.1f} °C")
+          self.bms_temp_3_label.setText(f"Battery (probe 3):{self.bms_temp[2]:.1f} °C")
+          
 
-     #todo: add in other update functions
+     def on_internal_temp_update(self, value: float):
+          self.internal_temp = value
+          self.internal_temp_label.setText(f"Internal:{self.internal_temp:.1f} °C")
 
+     def on_internal_pressure_update(self, value: float):
+          self.internal_pressure = value
+          self.internal_pressure_label.setText(f"Internal:{self.internal_pressure:.1f} Pa")
+          
      def closeEvent(self, event):
           self.ros_node.destroy_node()
           rclpy.shutdown()
@@ -225,9 +251,9 @@ class RobotGUI(QWidget):
 
           self.internal_temp_label = QLabel(f"Internal:{self.internal_temp:.1f} °C")
           self.external_temp_label = QLabel(f"External:{self.external_temp:.1f} °C")
-          self.bms_temp_1_label = QLabel(f"Battery (probe 1):{self.bms_temp_1:.1f} °C")
-          self.bms_temp_2_label = QLabel(f"Battery (probe 2):{self.bms_temp_2:.1f} °C")
-          self.bms_temp_3_label = QLabel(f"Battery (probe 3):{self.bms_temp_3:.1f} °C")
+          self.bms_temp_1_label = QLabel(f"Battery (probe 1):{self.bms_temp[0]:.1f} °C")
+          self.bms_temp_2_label = QLabel(f"Battery (probe 2):{self.bms_temp[1]:.1f} °C")
+          self.bms_temp_3_label = QLabel(f"Battery (probe 3):{self.bms_temp[2]:.1f} °C")
 
           right_col.addWidget(temp_title)
           right_col.addWidget(self.internal_temp_label)
