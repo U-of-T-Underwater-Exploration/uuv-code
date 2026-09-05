@@ -16,7 +16,7 @@ class JoystickHAL(Node):
 
         self.subscription = self.create_subscription(
             Joy,
-            '/joy',
+            'joy',
             self.joy_callback,
             qos
         )
