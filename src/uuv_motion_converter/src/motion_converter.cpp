@@ -137,10 +137,10 @@ class MotionConverter : public rclcpp::Node
         // TODO: Extract motion commands from msg
         motion_cmd(0) = msg->surge;
         motion_cmd(1) = msg->sway;
-        motion_cmd(2) = msg->heave / 2.0 - 0.5;
+        motion_cmd(2) = msg->heave;
         motion_cmd(3) = msg->roll;
         motion_cmd(4) = msg->pitch;
-        motion_cmd(5) = msg->yaw / 2.0 - 0.5;
+        motion_cmd(5) = msg->yaw;
 
         for (size_t i = 0; i < msg->actions.size(); i++){
             if (msg->actions[i].action == 4){
