@@ -82,8 +82,9 @@ class PWMDriver(Node):
         """Set PWM values for channels one to eight."""
 
         channels = [0, 1, 2, 3, 4, 5, 6, 7]
+        trimmed_values = [round(v, 7) for v in values]
         
-        navigator.set_pwm_channels_duty_cycle_values(channels, values)
+        navigator.set_pwm_channels_duty_cycle_values(channels, trimmed_values)
 
     def publish_pwm(self):
         """Publish the current PWM values and their validity."""
@@ -107,6 +108,9 @@ class PWMDriver(Node):
         freq = self.get_parameter('pwm_frequency_hz').value
         navigator.set_pwm_freq_hz(freq)
         navigator.set_pwm_enable(True)
+
+        init_pwm = [0.075] * 8  # Initial PWM values for thrusters
+        self.set_pwm_thruster_channels(init_pwm)
 
 
 def main(args=None):
