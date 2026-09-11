@@ -6,8 +6,8 @@ utux:
               id: 5
               p_motor_offset: [0.5, 0.5, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.0, 0.0, 1.0]    #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -16,8 +16,8 @@ utux:
               id: 1
               p_motor_offset: [0.5, -0.5, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.0, 0.0, 1.0]     #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -26,8 +26,8 @@ utux:
               id: 2
               p_motor_offset: [-0.5, -0.5, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.0, 0.0, 1.0]     #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -36,8 +36,8 @@ utux:
               id: 3
               p_motor_offset: [-0.5, 0.5, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.0, 0.0, 1.0]      #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -46,8 +46,8 @@ utux:
               id: 4
               p_motor_offset: [1.0, 1.0, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.707106781186547, -0.707106781186547, 0.0]    #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -56,8 +56,8 @@ utux:
               id: 0
               p_motor_offset: [1.0, -1.0, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.707106781186547, 0.707106781186547, 0.0]    #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -66,8 +66,8 @@ utux:
               id: 6
               p_motor_offset: [-1.0, -1.0, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.707106781186547, -0.707106781186547, 0.0]    #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
@@ -76,8 +76,8 @@ utux:
               id: 7
               p_motor_offset: [-1.0, 1.0, 0.0] #Make sure values are FLOATS or else .as_double_array() will throw an error
               r_motor_dir: [0.707106781186547, 0.707106781186547, 0.0]    #Make sure values are FLOATS or else .as_double_array() will throw an error
-              max_forward_thrust: 100.0
-              max_reverse_thrust: -100.0
+              max_forward_thrust: 50.0
+              max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
               inverted: false
