@@ -85,6 +85,7 @@ class PWMDriver(Node):
         trimmed_values = [round(v, 7) for v in values]
         
         navigator.set_pwm_channels_duty_cycle_values(channels, trimmed_values)
+        self.get_logger().info(f'Set PWM values: {trimmed_values}')
 
     def publish_pwm(self):
         """Publish the current PWM values and their validity."""
@@ -93,8 +94,6 @@ class PWMDriver(Node):
         pwm_valid = self.pwm_valid
 
         pwm_msg = ThrustersPWM()
-        self.get_logger().info(f'Set PWM values: {pwm_values}')
-        self.get_logger().info(f'PWM validity: {pwm_valid}')
         pwm_msg.pwm_values = pwm_values
         pwm_msg.pwm_valid = pwm_valid
         self.pwm_pub.publish(pwm_msg)
