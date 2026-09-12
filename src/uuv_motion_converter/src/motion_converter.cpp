@@ -217,6 +217,9 @@ class MotionConverter : public rclcpp::Node
                 }
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
+
+            RCLCPP_INFO(this->get_logger(), "Thruster %d duty cycle: %.6f", i, motor_percentage);
+
             int motor_id = thrusters[i].id;
             if (motor_id < 0 || motor_id >= 8)) {
                 RCLCPP_ERROR(this->get_logger(), "Thruster %d has invalid id %d, skipping", i, motor_id);
