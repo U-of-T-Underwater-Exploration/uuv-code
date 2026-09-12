@@ -217,8 +217,12 @@ class MotionConverter : public rclcpp::Node
                 }
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
-            
-            thruster_cmd.data[i] = motor_percentage;
+            int motor_id = thrusters[i].id;
+            if (motor_id < 0 || motor_id >= 8)) {
+                RCLCPP_ERROR(this->get_logger(), "Thruster %d has invalid id %d, skipping", i, motor_id);
+                continue;
+            }
+            thruster_cmd.data[motor_id] = motor_percentage;
         }
 
         thruster_cmd_pub_->publish(thruster_cmd);
