@@ -231,6 +231,11 @@ class MotionConverter : public rclcpp::Node
 
     // Linear mapping from thrust to thrust_percentage
     float thrust_mapping(float thrust, const Thruster& thruster){
+        // Correct for thrusters mounted in reverse orientation
+        if (thruster.inverted) {
+            thrust = -thrust;
+        }
+
         if (thrust > 0.0f) {
             if (thruster.max_forward_thrust == 0.0) {
                 RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);
@@ -248,6 +253,11 @@ class MotionConverter : public rclcpp::Node
     }
 
     float normalize_factor(float thrust, const Thruster& thruster){
+        // Correct for thrusters mounted in reverse orientation
+        if (thruster.inverted) {
+            thrust = -thrust;
+        }
+
         if (thrust > 0.0f) {
             if (thruster.max_forward_thrust == 0.0) {
                 RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);

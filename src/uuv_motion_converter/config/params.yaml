@@ -60,7 +60,7 @@ utux:
               max_reverse_thrust: -50.0
               # deadband: 0.02
               enabled: true
-              inverted: false
+              inverted: true
             
             thruster_6:
               id: 7
