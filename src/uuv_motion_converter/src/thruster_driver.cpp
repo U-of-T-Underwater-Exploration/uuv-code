@@ -21,8 +21,8 @@ class ThrusterDriver : public rclcpp::Node
             // Setting up max and min duty cycles for respective fwd and rev thrust (In case variables change)
             const int freq = 50;    //The frequency of PWM cycles in Hz
 
-            const float max_dty_cycl = (2000) * freq /1000000.0f; //For full fwd thrust (2000 microseconds pulse width)
-            const float min_dty_cycl = (1000) * freq /1000000.0f; //For full rev thrust (1000 microseconds pulse width)
+            const float max_dty_cycl = (1900) * freq /1000000.0f; //For full fwd thrust (2000 microseconds pulse width)
+            const float min_dty_cycl = (1100) * freq /1000000.0f; //For full rev thrust (1000 microseconds pulse width)
 
             // Return duty cycle, assuming linear mapping for now (-1.0f -> min_dty_cycl, 1.0f -> max_dty_cycl).         
             // Can modify code later, to account for S-curve, non-linear mapping, etc.
