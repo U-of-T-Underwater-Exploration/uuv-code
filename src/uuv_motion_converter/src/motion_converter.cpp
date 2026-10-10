@@ -66,7 +66,7 @@ class MotionConverter : public rclcpp::Node
                 "/motion/command", 10, std::bind(&MotionConverter::get_wrench_callback, this, std::placeholders::_1));
 
             // // Publish to '/thruster/command' 
-            thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command", 10);
+            thruster_cmd_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/thruster/command_raw", 10);
             
             // Reading and storing parameters for each thruster
             for (size_t i = 0; i < thrusters.size(); i++){
