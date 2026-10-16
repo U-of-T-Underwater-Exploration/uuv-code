@@ -12,12 +12,13 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(uuv_joystick_msgs REQUIRED)
 
 add_executable(thruster_driver_node src/thruster_driver.cpp)
 ament_target_dependencies(thruster_driver_node rclcpp std_msgs)
 
 add_executable(motion_converter_node src/motion_converter.cpp)
-ament_target_dependencies(motion_converter_node rclcpp std_msgs)
+ament_target_dependencies(motion_converter_node rclcpp std_msgs uuv_joystick_msgs)
 target_include_directories(motion_converter_node PRIVATE ${PROJECT_SOURCE_DIR}/../extern/eigen)
 
 install(TARGETS
