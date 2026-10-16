@@ -1,0 +1,19 @@
+# Kogger Micro DVL velocity packet (from Task-Tracker new_nodes/uuv_msgs.md)
+std_msgs/Header header
+uint32 flags
+uint32 device_timestamp_ms
+float32 delta_time
+float32 latency
+float32 vel_x
+float32 vel_y
+float32 vel_z
+float32 vel_z1
+float32 vel_z2
+float32 unc_x
+float32 unc_y
+float32 unc_z
+float32 unc_z1
+float32 unc_z2
+float32 dist_z
+float32 dist_z1
+float32 dist_z2
