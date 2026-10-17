@@ -1,0 +1,2 @@
+float32 pwm_values
+int8 pwm_channelnumber
