@@ -4,13 +4,14 @@
   <name>uuv_safety</name>
   <version>1.0.0</version>
   <description>safety_monitor: watches the vehicle and cuts thruster commands on a fault</description>
-  <maintainer email="kait07mkc@gmail.com">Kaitlyn Chit</maintainer>
+  <maintainer email="kait07@gmail.com">Kaitlyn Chit</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>uuv_msgs</depend>
   <depend>pwm_msg</depend>
 
