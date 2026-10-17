@@ -11,6 +11,8 @@
 
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>uuv_msgs</depend>
+  <depend>pwm_msg</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
