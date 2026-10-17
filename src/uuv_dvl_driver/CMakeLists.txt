@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
+find_package(uuv_msgs REQUIRED)
 
 add_executable(uuv_dvl_driver_node src/uuv_dvl_driver.cpp)
 
@@ -19,6 +20,7 @@ ament_target_dependencies(uuv_dvl_driver_node
   geometry_msgs
   sensor_msgs
   diagnostic_msgs
+  uuv_msgs
 )
 
 install(TARGETS
