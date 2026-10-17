@@ -23,7 +23,7 @@ ament_target_dependencies(uuv_dvl_driver_node
 
 install(TARGETS
   uuv_dvl_driver_node
-  DESTINATION lib/${uuv_dvl_driver}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
