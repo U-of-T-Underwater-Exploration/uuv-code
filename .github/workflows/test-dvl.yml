@@ -1,0 +1,43 @@
+name: Test DVL Publisher
+
+on:
+  push:
+    branches:
+      - feature/dvl-publisher
+  workflow_dispatch:
+
+jobs:
+  test-dvl:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble-ros-base
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y python3-colcon-common-extensions \
+            ros-humble-geometry-msgs \
+            ros-humble-sensor-msgs \
+            ros-humble-diagnostic-msgs
+
+      - name: Build DVL driver
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --packages-select uuv_dvl_driver
+
+      - name: Test twist publisher
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+
+          ros2 run uuv_dvl_driver uuv_dvl_driver_node &
+          NODE_PID=$!
+          trap 'kill $NODE_PID 2>/dev/null || true' EXIT
+
+          sleep 3
+          timeout 20 ros2 topic echo /dvl/twist --once
