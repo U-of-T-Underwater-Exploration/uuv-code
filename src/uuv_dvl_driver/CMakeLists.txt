@@ -13,7 +13,13 @@ find_package(sensor_msgs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(uuv_msgs REQUIRED)
 
-add_executable(uuv_dvl_driver_node src/uuv_dvl_driver.cpp)
+add_executable(uuv_dvl_driver_node 
+  src/uuv_dvl_driver.cpp 
+  src/uuv_dvl_vel_parser.cpp)
+
+target_include_directories(uuv_dvl_driver_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 ament_target_dependencies(uuv_dvl_driver_node
   rclcpp

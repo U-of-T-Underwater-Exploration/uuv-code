@@ -11,6 +11,9 @@
 #include "sensor_msgs/msg/range.hpp"
 #include "uuv_msgs/msg/kogger_dvl_vel.hpp"
 
+#include "uuv_dvl_driver/uuv_dvl_parser.hpp"
+#include <vector>
+
 class DVLDriver : public rclcpp::Node {
  public:
   DVLDriver() : Node("uuv_dvl_driver") {
@@ -182,6 +185,8 @@ class DVLDriver : public rclcpp::Node {
 
   // Timer declaration
   rclcpp::TimerBase::SharedPtr timer_;
+
+  
 };
 
 int main(int argc, char* argv[]) {
