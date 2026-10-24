@@ -1,0 +1,41 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
+/*
+ * Copyright (C) 2024, Red Hat Inc.
+ *
+ * Authors:
+ * Hans de Goede <hdegoede@redhat.com>
+ *
+ * Simple builtin benchmark to measure software ISP processing times
+ */
+
+#pragma once
+
+#include <stdint.h>
+#include <string>
+#include <time.h>
+
+namespace libcamera {
+
+class CameraManager;
+
+class Benchmark
+{
+public:
+	Benchmark(const CameraManager &cm, const std::string &name);
+	~Benchmark();
+
+	void startFrame(void);
+	void finishFrame(void);
+
+private:
+	std::string name_;
+	timespec frameStartTime_;
+	bool measure_;
+	/* Skip 30 frames for things to stabilize then measure 30 frames */
+	unsigned int encounteredFrames_ = 0;
+	int64_t frameProcessTime_ = 0;
+	unsigned int skipBeforeMeasure_ = 30;
+	unsigned int framesToMeasure_ = 30;
+};
+
+} /* namespace libcamera */

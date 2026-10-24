@@ -1,0 +1,162 @@
+.. SPDX-License-Identifier: CC-BY-SA-4.0
+
+libcamera Architecture
+======================
+
+While offering a unified API towards upper layers, and presenting itself as a
+single library, libcamera isn't monolithic. It exposes multiple components
+through its public API and is built around a set of separate helpers internally.
+Hardware abstractions are handled through the use of device-specific components
+where required and dynamically loadable plugins are used to separate image
+processing algorithms from the core libcamera codebase.
+
+::
+
+   --------------------------< libcamera Public API >---------------------------
+                 ^                                          ^
+                 |                                          |
+                 v                                          v
+          +-------------+  +---------------------------------------------------+
+          |   Camera    |  |  Camera Device                                    |
+          |   Manager   |  | +-----------------------------------------------+ |
+          +-------------+  | | Device-Agnostic                               | |
+                 ^         | |                                               | |
+                 |         | |                    +--------------------------+ |
+                 |         | |                    |   ~~~~~~~~~~~~~~~~~~~~~~~  |
+                 |         | |                    |  {  +-----------------+  } |
+                 |         | |                    |  }  | //// Image //// |  { |
+                 |         | |                    | <-> | / Processing // |  } |
+                 |         | |                    |  }  | / Algorithms // |  { |
+                 |         | |                    |  {  +-----------------+  } |
+                 |         | |                    |   ~~~~~~~~~~~~~~~~~~~~~~~  |
+                 |         | |                    | ========================== |
+                 |         | |                    |     +-----------------+    |
+                 |         | |                    |     | // Pipeline /// |    |
+                 |         | |                    | <-> | /// Handler /// |    |
+                 |         | |                    |     | /////////////// |    |
+                 |         | +--------------------+     +-----------------+    |
+                 |         |                                   Device-Specific |
+                 |         +---------------------------------------------------+
+                 |                          ^                         ^
+                 |                          |                         |
+                 v                          v                         v
+          +--------------------------------------------------------------------+
+          | Helpers and Support Classes                                        |
+          | +-------------+  +-------------+  +-------------+  +-------------+ |
+          | |  MC & V4L2  |  |   Buffers   |  | Sandboxing  |  |   Plugins   | |
+          | |   Support   |  |  Allocator  |  |     IPC     |  |   Manager   | |
+          | +-------------+  +-------------+  +-------------+  +-------------+ |
+          | +-------------+  +-------------+                                   |
+          | |  Pipeline   |  |     ...     |                                   |
+          | |   Runner    |  |             |                                   |
+          | +-------------+  +-------------+                                   |
+          +--------------------------------------------------------------------+
+
+            /// Device-Specific Components
+            ~~~ Sandboxing
+
+
+Camera Manager
+  The Camera Manager enumerates cameras and instantiates Pipeline Handlers to
+  manage each Camera that libcamera supports. The Camera Manager supports
+  hotplug detection and notification events when supported by the underlying
+  kernel devices.
+
+  There is only ever one instance of the Camera Manager running per application.
+  Each application's instance of the Camera Manager ensures that only a single
+  application can take control of a camera device at once.
+
+  Read the :doxy-pub:`CameraManager` API documentation for more details.
+
+Camera Device
+  The Camera class represents a single item of camera hardware that is capable
+  of producing one or more image streams, and provides the API to interact with
+  the underlying device.
+
+  If a system has multiple instances of the same hardware attached, each has its
+  own instance of the camera class.
+
+  The API exposes full control of the device to upper layers of libcamera through
+  the public API, making it the highest level object libcamera exposes, and the
+  object that all other API operations interact with from configuration to
+  capture.
+
+  Read the :doxy-pub:`Camera` API documentation for more details.
+
+Pipeline Handler
+  The Pipeline Handler manages the complex pipelines exposed by the kernel
+  drivers through the Media Controller and V4L2 APIs. It abstracts pipeline
+  handling to hide device-specific details from the rest of the library, and
+  implements both pipeline configuration based on stream configuration, and
+  pipeline runtime execution and scheduling when needed by the device.
+
+  The Pipeline Handler lives in the same process as the rest of the library, and
+  has access to all helpers and kernel camera-related devices.
+
+  Hardware abstraction is handled by device specific Pipeline Handlers which are
+  derived from the Pipeline Handler base class allowing commonality to be shared
+  among the implementations.
+
+  Derived pipeline handlers create Camera device instances based on the devices
+  they detect and support on the running system, and are responsible for
+  managing the interactions with a camera device.
+
+  More details can be found in the :doxy-int:`PipelineHandler` API
+  documentation, and the
+  :doc:`Pipeline Handler Writers Guide <guides/pipeline-handler>`.
+
+Image Processing Algorithms
+  Together with the hardware image processing and hardware statistics
+  collection, the Image Processing Algorithms (IPA) implement 3A (Auto-Exposure,
+  Auto-White Balance and Auto-Focus) and other algorithms. They run on the CPU
+  and control hardware image processing based on the parameters supplied by
+  upper layers, closing the control loop of the ISP.
+
+  IPAs are loaded as external plugins named IPA Modules. IPA Modules can be
+  part of the libcamera code base or provided externally by camera vendors.
+  In-tree IPA modules are covered by the same license as the rest of libcamera,
+  external IPA modules can be open-source or closed-source.
+
+  IPA Modules built with libcamera are run in the same process space as the
+  library. External IPA Modules are run in a separate sandboxed process. In
+  either case, they can only interact with libcamera through the API provided
+  by the Pipeline Handler. They have a restricted view of the system, with no
+  direct access to kernel camera devices, no access to networking APIs, and
+  limited access to file systems. All their accesses to image and metadata are
+  mediated by dmabuf instances explicitly passed by the Pipeline Handler to the
+  IPA Module.
+
+  IPA Modules are only required for platforms and devices with an ISP controlled
+  by the host CPU. Camera sensors which have an integrated ISP are not
+  controlled through the IPA Module.
+
+Helpers and Support Classes
+  While Pipeline Handlers are device-specific, implementations are expected to
+  share code due to usage of identical APIs towards the kernel camera drivers
+  and the Image Processing Algorithms. This includes without limitation handling
+  of the MC and V4L2 APIs, buffer management through dmabuf, and pipeline
+  discovery, configuration and scheduling. Such code will be factored out to
+  helpers when applicable.
+
+  Other parts of libcamera will also benefit from factoring code out to
+  self-contained support classes, even if such code is present only once in the
+  code base, in order to keep the source code clean and easy to read. This
+  should be the case for instance for plugin management.
+
+Dependencies
+------------
+
+As a system component, libcamera tries to minimize its dependency on
+third-party libraries. New dependencies are evaluated on a case-by-case basis,
+to balance the value they bring with the impact on distributions. Dependencies
+for optional features must be conditioned by a meson feature option, as usage
+of dependencies based only on auto-detection hinders reproducible builds and
+dependency management for distributions. All dependencies must be compatible
+with the libcamera license.
+
+Dependencies may not be used to load closed-source components from pipeline
+handlers or in-tree IPA modules. This includes GPU shaders or neural network
+models. Usage of closed-source components is permitted in external IPA Modules
+only. Pipeline handlers and in-tree IPA Modules are allowed to use neural
+networks provided that both the model and its training data are available under
+an open-source license compatible with libcamera.

@@ -1,0 +1,55 @@
+{#-
+ # SPDX-License-Identifier: LGPL-2.1-or-later
+ # Copyright (C) 2020, Google Inc.
+-#}
+
+{#
+ # \brief Generate enum definition
+ #
+ # \param enum Enum object whose definition is to be generated
+ #}
+{%- macro define_enum(enum) -%}
+enum{{" class" if enum|is_scoped}} {{enum.mojom_name}} {
+{%- for field in enum.fields %}
+	{{field.mojom_name}} = {{field.numeric_value}},
+{%- endfor %}
+};
+{%- endmacro -%}
+
+{#
+ # \brief Generate struct definition
+ #
+ # \param struct Struct object whose definition is to be generated
+ #}
+{%- macro define_struct(struct) -%}
+struct {{struct.mojom_name}}
+{
+public:
+#ifndef __DOXYGEN__
+	{{struct.mojom_name}}() = default;
+
+	template<
+	{%- for field in struct.fields %}
+		typename T{{loop.index}} = {{field|name}},
+	{%- endfor %}
+	{%- for field in struct.fields %}
+		std::enable_if_t<std::is_convertible_v<T{{loop.index}}&&, {{field|name}}>> * = nullptr{{"," if not loop.last}}
+	{%- endfor %}
+	>
+	{{struct.mojom_name}}(
+{%- for field in struct.fields -%}
+		T{{loop.index}} &&_{{field.mojom_name}}{{ ", " if not loop.last }}
+{%- endfor -%}
+)
+{%- for field in struct.fields %}
+		{{": " if loop.first else ", "}}{{field.mojom_name}}(std::forward<T{{loop.index}}>(_{{field.mojom_name}}))
+{%- endfor %}
+	{
+	}
+#endif
+
+{% for field in struct.fields %}
+	{{field|name}} {{field.mojom_name}}{% if field|default_value %}{ {{field|default_value}} }{% endif %};
+{%- endfor %}
+};
+{%- endmacro -%}

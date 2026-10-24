@@ -1,0 +1,169 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+/*
+From http://jgt.akpeters.com/papers/McGuire08/
+
+Efficient, High-Quality Bayer Demosaic Filtering on GPUs
+
+Morgan McGuire
+
+This paper appears in issue Volume 13, Number 4.
+---------------------------------------------------------
+Copyright (c) 2008, Morgan McGuire. All rights reserved.
+
+Modified by Linaro Ltd to integrate it into libcamera.
+Copyright (C) 2021, Linaro
+*/
+
+//Pixel Shader
+#ifdef GL_ES
+precision highp float;
+#endif
+
+/** Monochrome RGBA or GL_LUMINANCE Bayer encoded texture.*/
+uniform sampler2D       tex_y;
+varying vec4            center;
+varying vec4            yCoord;
+varying vec4            xCoord;
+uniform vec3            awb;
+uniform mat3            ccm;
+uniform vec3            blacklevel;
+uniform float           gamma;
+uniform float           contrastExp;
+
+#if defined(APPLY_LSC)
+uniform sampler2D lsc_tex;
+#endif
+
+float apply_contrast(float value)
+{
+    // Apply simple S-curve
+    if (value < 0.5)
+        return 0.5 * pow(value / 0.5, contrastExp);
+    else
+        return 1.0 - 0.5 * pow((1.0 - value) / 0.5, contrastExp);
+}
+
+void main(void) {
+    vec3 rgb;
+
+    #if defined(RAW10P)
+    #define pixel(p) p.r / 4.0 + p.g * 64.0
+    #define fetch(x, y) pixel(texture2D(tex_y, vec2(x, y)))
+    #elif defined(RAW12P)
+    #define pixel(p) p.r / 16.0 + p.g * 16.0
+    #define fetch(x, y) pixel(texture2D(tex_y, vec2(x, y)))
+    #else
+    #define fetch(x, y) texture2D(tex_y, vec2(x, y)).r
+    #endif
+
+    float C = fetch(center.x, center.y); // ( 0, 0)
+    const vec4 kC = vec4( 4.0,  6.0,  5.0,  5.0) / 8.0;
+
+    // Determine which of four types of pixels we are on.
+    vec2 alternate = mod(floor(center.zw), 2.0);
+
+    vec4 Dvec = vec4(
+        fetch(xCoord[1], yCoord[1]),  // (-1,-1)
+        fetch(xCoord[1], yCoord[2]),  // (-1, 1)
+        fetch(xCoord[2], yCoord[1]),  // ( 1,-1)
+        fetch(xCoord[2], yCoord[2])); // ( 1, 1)
+
+    vec4 PATTERN = (kC.xyz * C).xyzz;
+
+    // Can also be a dot product with (1,1,1,1) on hardware where that is
+    // specially optimized.
+    // Equivalent to: D = Dvec[0] + Dvec[1] + Dvec[2] + Dvec[3];
+    Dvec.xy += Dvec.zw;
+    Dvec.x  += Dvec.y;
+
+    vec4 value = vec4(
+        fetch(center.x, yCoord[0]),   // ( 0,-2)
+        fetch(center.x, yCoord[1]),   // ( 0,-1)
+        fetch(xCoord[0], center.y),   // (-2, 0)
+        fetch(xCoord[1], center.y));  // (-1, 0)
+
+    vec4 temp = vec4(
+        fetch(center.x, yCoord[3]),   // ( 0, 2)
+        fetch(center.x, yCoord[2]),   // ( 0, 1)
+        fetch(xCoord[3], center.y),   // ( 2, 0)
+        fetch(xCoord[2], center.y));  // ( 1, 0)
+
+    // Even the simplest compilers should be able to constant-fold these to
+    // avoid the division.
+    // Note that on scalar processors these constants force computation of some
+    // identical products twice.
+    const vec4 kA = vec4(-1.0, -1.5,  0.5, -1.0) / 8.0;
+    const vec4 kB = vec4( 2.0,  0.0,  0.0,  4.0) / 8.0;
+    const vec4 kD = vec4( 0.0,  2.0, -1.0, -1.0) / 8.0;
+
+    // Conserve constant registers and take advantage of free swizzle on load
+    #define kE (kA.xywz)
+    #define kF (kB.xywz)
+
+    value += temp;
+
+    // There are five filter patterns (identity, cross, checker,
+    // theta, phi).  Precompute the terms from all of them and then
+    // use swizzles to assign to color channels.
+    //
+    // Channel   Matches
+    //   x       cross   (e.g., EE G)
+    //   y       checker (e.g., EE B)
+    //   z       theta   (e.g., EO R)
+    //   w       phi     (e.g., EO R)
+    #define A (value[0])
+    #define B (value[1])
+    #define D (Dvec.x)
+    #define E (value[2])
+    #define F (value[3])
+
+    // Avoid zero elements. On a scalar processor this saves two MADDs
+    // and it has no effect on a vector processor.
+    PATTERN.yzw += (kD.yz * D).xyy;
+
+    PATTERN += (kA.xyz * A).xyzx + (kE.xyw * E).xyxz;
+    PATTERN.xw  += kB.xw * B;
+    PATTERN.xz  += kF.xz * F;
+
+    rgb =  (alternate.y == 0.0) ?
+        ((alternate.x == 0.0) ?
+            vec3(C, PATTERN.xy) :
+            vec3(PATTERN.z, C, PATTERN.w)) :
+        ((alternate.x == 0.0) ?
+            vec3(PATTERN.w, C, PATTERN.z) :
+            vec3(PATTERN.yx, C));
+
+    /*
+     * \todo: Black level normalising, AWB and digital gain could be
+     * reworked into a single multiplication.
+     */
+    rgb = (rgb - blacklevel) / (1.0 - blacklevel);
+
+#if defined(APPLY_LSC)
+    /* Multiple by 4.0 for UQ<2, 6> -> float conversion */
+    rgb = rgb * (texture2D(lsc_tex, center.xy).rgb * 4.0);
+#endif
+
+    /* Apply AWB gains, and saturate each channel at sensor range */
+    rgb = clamp(rgb * awb, vec3(0.0), vec3(1.0));
+
+    /* Colour Correction Matrix */
+    rgb = ccm * rgb;
+
+    /*
+     * Contrast
+     */
+    rgb = clamp(rgb, 0.0, 1.0);
+    rgb.r = apply_contrast(rgb.r);
+    rgb.g = apply_contrast(rgb.g);
+    rgb.b = apply_contrast(rgb.b);
+
+    /* Apply gamma after colour correction */
+    rgb = pow(rgb, vec3(gamma));
+
+#if defined (SWAP_BLUE)
+    gl_FragColor = vec4(rgb.bgr, 1.0);
+#else
+    gl_FragColor = vec4(rgb, 1.0);
+#endif
+}

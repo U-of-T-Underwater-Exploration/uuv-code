@@ -1,0 +1,76 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
+/*
+ * Copyright (C) 2023, Ideas on Board Oy
+ *
+ * Mali C55 AGC/AEC mean-based control algorithm
+ */
+
+#pragma once
+
+#include <libcamera/base/utils.h>
+
+#include "libcamera/internal/bayer_format.h"
+
+#include "libipa/agc.h"
+#include "libipa/histogram.h"
+
+#include "algorithm.h"
+#include "ipa_context.h"
+
+namespace libcamera {
+
+namespace ipa::mali_c55::algorithms {
+
+class AgcStatistics
+{
+public:
+	AgcStatistics()
+	{
+	}
+
+	int setBayerOrderIndices(BayerFormat::Order bayerOrder);
+	uint32_t decodeBinValue(uint16_t binVal);
+	void parseStatistics(const mali_c55_stats_buffer *stats);
+
+	Histogram rHist;
+	Histogram gHist;
+	Histogram bHist;
+	Histogram yHist;
+private:
+	unsigned int rIndex_;
+	unsigned int grIndex_;
+	unsigned int gbIndex_;
+	unsigned int bIndex_;
+};
+
+class Agc : public Algorithm
+{
+public:
+	Agc();
+	~Agc() = default;
+
+	int init(IPAContext &context, const ValueNode &tuningData) override;
+	int configure(IPAContext &context,
+		      const IPACameraSensorInfo &configInfo) override;
+	void queueRequest(IPAContext &context, const uint32_t frame,
+			  IPAFrameContext &frameContext,
+			  const ControlList &controls) override;
+	void prepare(IPAContext &context, const uint32_t frame,
+		     IPAFrameContext &frameContext,
+		     MaliC55Params *params) override;
+	void process(IPAContext &context, const uint32_t frame,
+		     IPAFrameContext &frameContext,
+		     const mali_c55_stats_buffer *stats,
+		     ControlList &metadata) override;
+
+private:
+	void fillParamsBuffer(MaliC55Params *params, enum MaliC55Blocks type);
+	void fillWeightsArrayBuffer(MaliC55Params *params, enum MaliC55Blocks type);
+
+	AgcStatistics statistics_;
+	AgcAlgorithm agc_;
+};
+
+} /* namespace ipa::mali_c55::algorithms */
+
+} /* namespace libcamera */

@@ -1,0 +1,38 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
+/*
+ * Copyright (C) 2024 Ideas on Board Oy
+ *
+ * AWB grey world algorithm
+ */
+
+#pragma once
+
+#include <optional>
+
+#include "libcamera/internal/vector.h"
+
+#include "awb.h"
+#include "interpolator.h"
+
+namespace libcamera {
+
+namespace ipa {
+
+class AwbGrey : public AwbImplementation
+{
+public:
+	AwbGrey() = default;
+
+	int init(const ValueNode &tuningData) override;
+	AwbImplementation::Result
+	calculateAwb(const AwbStats &stats, unsigned int lux,
+		     std::array<double, 2> range) override;
+	std::optional<RGB<double>> gainsFromColourTemperature(double colourTemperature) override;
+
+private:
+	std::optional<Interpolator<Vector<double, 2>>> colourGainCurve_;
+};
+
+} /* namespace ipa */
+
+} /* namespace libcamera */

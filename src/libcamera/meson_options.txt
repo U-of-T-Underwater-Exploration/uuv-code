@@ -1,0 +1,133 @@
+# SPDX-License-Identifier: CC0-1.0
+
+option('android',
+        type : 'feature',
+        value : 'disabled',
+        description : 'Compile libcamera with Android Camera3 HAL interface')
+
+option('android_platform',
+        type : 'combo',
+        choices : ['cros', 'generic'],
+        value : 'generic',
+        description : 'Select the Android platform to compile for')
+
+option('cam',
+        type : 'feature',
+        value : 'auto',
+        description : 'Compile the cam test application')
+
+option('cam-output-kms',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable KMS output in the cam application')
+
+option('cam-output-sdl2',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable SDL2 output in the cam application')
+
+option('cam-jpeg',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable JPEG support in the cam application')
+
+option('documentation',
+        type : 'feature',
+        value : 'auto',
+        description : 'Generate the project documentation')
+
+option('doc_werror',
+        type : 'boolean',
+        value : false,
+        description : 'Treat documentation warnings as errors')
+
+option('gstreamer',
+        type : 'feature',
+        value : 'auto',
+        description : 'Compile libcamera GStreamer plugin')
+
+option('ipas',
+        type : 'array',
+        choices : ['ipu3', 'mali-c55', 'rkisp1', 'rpi/pisp', 'rpi/vc4',
+                   'softisp', 'vimc'],
+        description : 'Select which IPA modules to build')
+
+option('lc-compliance',
+        type : 'feature',
+        value : 'auto',
+        description : 'Compile the lc-compliance test application')
+
+option('libdw',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable libdw integration for backtrace symbolization')
+
+option('apps-output-dng',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable DNG file creation support in the cam and qcam applications')
+
+option('libunwind',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable libunwind integration for backtrace generation')
+
+option('pipelines',
+        type : 'array',
+        value : ['auto'],
+        choices : [
+            'all',
+            'auto',
+            'imx8-isi',
+            'ipu3',
+            'mali-c55',
+            'rkisp1',
+            'rpi/pisp',
+            'rpi/vc4',
+            'simple',
+            'uvcvideo',
+            'vimc',
+            'virtual'
+        ],
+        description : 'Select which pipeline handlers to build. If this is set to "auto", all the pipelines applicable to the target architecture will be built. If this is set to "all", all the pipelines will be built. If both are selected then "all" will take precedence.')
+
+option('pycamera',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable libcamera Python bindings (experimental)')
+
+option('qcam',
+        type : 'feature',
+        value : 'auto',
+        description : 'Compile the qcam test application')
+
+option('rpi-awb-nn',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable the Raspberry Pi Neural Network AWB algorithm')
+
+option('softisp-gpu',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable GPU accelerated processing in the software ISP')
+
+option('test',
+        type : 'boolean',
+        value : false,
+        description : 'Compile and include the tests')
+
+option('tracing',
+        type : 'feature',
+        value : 'auto',
+        description : 'Enable tracing (based on lttng)')
+
+option('udev',
+       type : 'feature',
+       value : 'auto',
+       description : 'Enable udev support for hotplug')
+
+option('v4l2',
+        type : 'feature',
+        value : 'auto',
+        description : 'Compile the V4L2 compatibility layer',
+        deprecated : {'true': 'enabled', 'false': 'disabled'})

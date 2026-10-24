@@ -1,0 +1,127 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
+/*
+ * Copyright (C) 2024, Paul Elder <paul.elder@ideasonboard.com>
+ *
+ * Helper class for interpolating maps of objects
+ */
+
+#pragma once
+
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <string>
+#include <tuple>
+
+#include <libcamera/base/log.h>
+
+#include "libcamera/internal/value_node.h"
+
+namespace libcamera {
+
+LOG_DECLARE_CATEGORY(Interpolator)
+
+namespace ipa {
+
+template<typename T>
+class Interpolator
+{
+public:
+	Interpolator() = default;
+	Interpolator(const std::map<unsigned int, T> &data)
+		: data_(data)
+	{
+	}
+	Interpolator(std::map<unsigned int, T> &&data)
+		: data_(std::move(data))
+	{
+	}
+
+	~Interpolator() = default;
+
+	int readYaml(const ValueNode &yaml,
+		     const std::string &key_name,
+		     const std::string &value_name)
+	{
+		data_.clear();
+		lastInterpolatedKey_.reset();
+
+		if (yaml.isEmpty())
+			return -ENOENT;
+
+		if (!yaml.isList()) {
+			LOG(Interpolator, Error) << "yaml object must be a list";
+			return -EINVAL;
+		}
+
+		for (const auto &value : yaml.asList()) {
+			unsigned int ct = std::stoul(value[key_name].get<std::string>(""));
+			std::optional<T> data =
+				value[value_name].get<T>();
+			if (!data) {
+				return -EINVAL;
+			}
+
+			data_[ct] = *data;
+		}
+
+		if (data_.size() < 1) {
+			LOG(Interpolator, Error) << "Need at least one element";
+			return -EINVAL;
+		}
+
+		return 0;
+	}
+
+	void setData(std::map<unsigned int, T> &&data)
+	{
+		data_ = std::move(data);
+		lastInterpolatedKey_.reset();
+	}
+
+	const std::map<unsigned int, T> &data() const
+	{
+		return data_;
+	}
+
+	const T &getInterpolated(unsigned int key)
+	{
+		ASSERT(data_.size() > 0);
+
+		if (lastInterpolatedKey_.has_value() &&
+		    *lastInterpolatedKey_ == key)
+			return lastInterpolatedValue_;
+
+		auto it = data_.lower_bound(key);
+
+		if (it == data_.begin())
+			return it->second;
+
+		if (it == data_.end())
+			return std::prev(it)->second;
+
+		if (it->first == key)
+			return it->second;
+
+		auto it2 = std::prev(it);
+		double lambda = (key - it2->first) / static_cast<double>(it->first - it2->first);
+		interpolate(it2->second, it->second, lastInterpolatedValue_, lambda);
+		lastInterpolatedKey_ = key;
+
+		return lastInterpolatedValue_;
+	}
+
+	void interpolate(const T &a, const T &b, T &dest, double lambda)
+	{
+		dest = a * (1.0 - lambda) + b * lambda;
+	}
+
+private:
+	std::map<unsigned int, T> data_;
+	T lastInterpolatedValue_;
+	std::optional<unsigned int> lastInterpolatedKey_;
+};
+
+} /* namespace ipa */
+
+} /* namespace libcamera */
