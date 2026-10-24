@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>libcamera</name>
+  <version>0.0.0</version>
+  <description>libcamera built from source</description>
+  <maintainer email="harvardboya@gmail.com">boya</maintainer>
+  <license>LGPL-2.1-or-later</license>
+  <export>
+    <build_type>meson</build_type>
+  </export>
+</package>
