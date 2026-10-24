@@ -61,6 +61,8 @@ class DVLDriver : public rclcpp::Node {
 
           auto parsed = parse_dvl_vel(payload);
 
+          RCLCPP_INFO(this->get_logger(), "Received payload %s", std::to_string(payload));
+
           auto stamp = this->now();
 
           publish_parsed_raw(stamp, parsed, id);
