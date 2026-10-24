@@ -1,4 +1,3 @@
-
 #include <chrono>
 #include <memory>
 #include <string>
@@ -10,7 +9,7 @@
 #include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/range.hpp"
-#include "uuv_dvl_driver/uuv_dvl_parser.hpp"
+#include "uuv_dvl_driver/uuv_dvl_vel_parser.hpp"
 #include "uuv_msgs/msg/kogger_dvl_vel.hpp"
 
 class DVLDriver : public rclcpp::Node {
