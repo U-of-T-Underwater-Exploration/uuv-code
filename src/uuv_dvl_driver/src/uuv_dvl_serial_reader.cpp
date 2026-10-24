@@ -35,7 +35,7 @@ DvlSerialReader::DvlSerialReader(const std::string &device) {
   tty.c_cflag &= ~CRTSCTS;
 
   // Kogger Micro DVL UART speed
-  if(cfsetispeed(&tty, B921600) != 0 || cfsetospeed(&tty, B921600) != 0 ||
+  if(cfsetispeed(&tty, B115200) != 0 || cfsetospeed(&tty, B115200) != 0 ||
      tcsetattr(fd_, TCSANOW, &tty) != 0) {
     const std::string error = std::strerror(errno);
     ::close(fd_);
