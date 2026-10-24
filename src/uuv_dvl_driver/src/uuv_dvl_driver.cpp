@@ -56,12 +56,11 @@ class DVLDriver : public rclcpp::Node {
 
           // Only accept normal ID_DVL_VEL version 2 data
           if(id != 0x79 || type != 1 || version != 2 || is_response || payload.size() != 68) {
+            RCLCPP_INFO(this->get_logger(), "Payload rejected");
             return;
           }
 
           auto parsed = parse_dvl_vel(payload);
-
-          RCLCPP_INFO(this->get_logger(), "Received payload %s", std::to_string(payload));
 
           auto stamp = this->now();
 
