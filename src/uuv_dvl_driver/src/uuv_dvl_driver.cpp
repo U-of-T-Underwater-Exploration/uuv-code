@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
@@ -29,35 +30,32 @@ class DVLDriver : public rclcpp::Node {
     // Publisher 4: raw DVL measurements
     raw_publisher_ = this->create_publisher<uuv_msgs::msg::KoggerDvlVel>("/dvl/raw", 10);
 
-    // Publish dummy measurements
     timer_ = this->create_wall_timer(std::chrono::seconds(1), [this]() {
       auto stamp = this->now();
 
-      publish_dummy_raw(stamp);
+      // Create a simulated 68-byte DVL velocity payload
+      std::vector<uint8_t> payload(68, 0);
+
+      // TIMESTAMP = 1000 ms (little-endian uint32_t)
+      payload[4] = 0xE8;
+      payload[5] = 0x03;
+
+      // VELOCITY_X = 1.0 m/s (little-endian IEEE 754 float)
+      payload[16] = 0x00;
+      payload[17] = 0x00;
+      payload[18] = 0x80;
+      payload[19] = 0x3F;
+
+      // Decode and publish the simulated payload
+      publish_parsed_raw(stamp, payload);
+
+      // These are still dummy publishers for now
       publish_dummy_velocity(stamp);
       publish_dummy_altitude(stamp);
       publish_dummy_status(stamp);
     });
 
-    RCLCPP_INFO(this->get_logger(), "DVL Driver started in dummy mode");
-
-    RCLCPP_INFO(this->get_logger(), "DVL Driver started in dummy mode");
-
-    // Temporary parser integration test
-    std::vector<uint8_t> test_payload(68, 0);
-
-    // TIMESTAMP = 1000 ms
-    test_payload[4] = 0xE8;
-    test_payload[5] = 0x03;
-
-    // VELOCITY_X = 1.0 m/s
-    test_payload[18] = 0x80;
-    test_payload[19] = 0x3F;
-
-    auto parsed = parse_dvl_vel(test_payload);
-
-    RCLCPP_INFO(this->get_logger(), "Parser test: timestamp=%.0f ms, velocity_x=%.2f m/s",
-                parsed.at("TIMESTAMP"), parsed.at("VELOCITY_X"));
+    RCLCPP_INFO(this->get_logger(), "DVL Driver started in simulated payload mode");
   }
 
  private:
@@ -145,41 +143,45 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Publisher 4
-  void publish_dummy_raw(const rclcpp::Time &stamp) {
+
+  void publish_parsed_raw(const rclcpp::Time &stamp, const std::vector<uint8_t> &payload) {
+    // Decode the binary payload using the parser
+    auto parsed = parse_dvl_vel(payload);
+
     uuv_msgs::msg::KoggerDvlVel msg;
 
     msg.header.stamp = stamp;
     msg.header.frame_id = "dvl_link";
 
-    // Device information
-    msg.flags = 0;
-    msg.device_timestamp_ms = 1000;
+    // Packet header ID (change soon?)
+    msg.id = 0x79;
+
+    // Unsigned 32-bit fields
+    msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
+    msg.device_timestamp_ms = static_cast<uint32_t>(parsed.at("TIMESTAMP"));
 
     // Timing information
-    msg.delta_time = 1.0;
-    msg.latency = 0.02;
+    msg.delta_time = static_cast<float>(parsed.at("DELTA_TIME"));
+    msg.latency = static_cast<float>(parsed.at("LATENCY"));
 
-    // Linear velocity (m/s)
-    msg.vel_x = 0.5;
-    msg.vel_y = 0.2;
-    msg.vel_z = -0.1;
+    // Velocities
+    msg.vel_x = static_cast<float>(parsed.at("VELOCITY_X"));
+    msg.vel_y = static_cast<float>(parsed.at("VELOCITY_Y"));
+    msg.vel_z = static_cast<float>(parsed.at("VELOCITY_Z"));
+    msg.vel_z1 = static_cast<float>(parsed.at("VELOCITY_Z1"));
+    msg.vel_z2 = static_cast<float>(parsed.at("VELOCITY_Z2"));
 
-    // Additional velocity fields
-    msg.vel_z1 = 0.0;
-    msg.vel_z2 = 0.0;
+    // Velocity uncertainties
+    msg.unc_x = static_cast<float>(parsed.at("UNCERTAINTY_X"));
+    msg.unc_y = static_cast<float>(parsed.at("UNCERTAINTY_Y"));
+    msg.unc_z = static_cast<float>(parsed.at("UNCERTAINTY_Z"));
+    msg.unc_z1 = static_cast<float>(parsed.at("UNCERTAINTY_Z1"));
+    msg.unc_z2 = static_cast<float>(parsed.at("UNCERTAINTY_Z2"));
 
-    // Velocity uncertainties (m/s)
-    msg.unc_x = 0.02;
-    msg.unc_y = 0.03;
-    msg.unc_z = 0.04;
-
-    msg.unc_z1 = 0.05;
-    msg.unc_z2 = 0.05;
-
-    // Distance measurements (m)
-    msg.dist_z = 1.5;
-    msg.dist_z1 = 1.4;
-    msg.dist_z2 = 1.6;
+    // Distance measurements
+    msg.dist_z = static_cast<float>(parsed.at("DISTANCE_Z"));
+    msg.dist_z1 = static_cast<float>(parsed.at("DISTANCE_Z1"));
+    msg.dist_z2 = static_cast<float>(parsed.at("DISTANCE_Z2"));
 
     raw_publisher_->publish(msg);
   }
