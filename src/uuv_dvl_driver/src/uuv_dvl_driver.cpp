@@ -63,7 +63,7 @@ class DVLDriver : public rclcpp::Node {
 
           auto stamp = this->now();
 
-          publish_parsed_raw(stamp, parsed);
+          publish_parsed_raw(stamp, parsed, id);
           publish_parsed_velocity(stamp, parsed);
           publish_parsed_altitude(stamp, parsed);
           publish_parsed_status(stamp, parsed);
