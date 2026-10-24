@@ -76,3 +76,6 @@ CATKIN_IGNORE
 *.cfgc
 /cfg/cpp/
 /cfg/*.py
+
+# ===== DS_STORE ======
+.DS_STORE
