@@ -60,7 +60,7 @@ class DVLDriver : public rclcpp::Node {
                 parsed.at("TIMESTAMP"), parsed.at("VELOCITY_X"));
   }
 
-}
+};
 
 private :
     // Publisher 1: /dvl/twist
