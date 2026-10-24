@@ -40,160 +40,165 @@ class DVLDriver : public rclcpp::Node {
     });
 
     RCLCPP_INFO(this->get_logger(), "DVL Driver started in dummy mode");
+
+    RCLCPP_INFO(this->get_logger(), "DVL Driver started in dummy mode");
+
+    // Temporary parser integration test
+    std::vector<uint8_t> test_payload(68, 0);
+
+    // TIMESTAMP = 1000 ms
+    test_payload[4] = 0xE8;
+    test_payload[5] = 0x03;
+
+    // VELOCITY_X = 1.0 m/s
+    test_payload[18] = 0x80;
+    test_payload[19] = 0x3F;
+
+    auto parsed = parse_dvl_vel(test_payload);
+
+    RCLCPP_INFO(this->get_logger(), "Parser test: timestamp=%.0f ms, velocity_x=%.2f m/s",
+                parsed.at("TIMESTAMP"), parsed.at("VELOCITY_X"));
   }
 
- private:
-  // Publisher 1: /dvl/twist
-  void publish_dummy_velocity(const rclcpp::Time &stamp) {
-    geometry_msgs::msg::TwistWithCovarianceStamped msg;
+}
 
-    msg.header.stamp = stamp;
-    msg.header.frame_id = "dvl_link";
+private :
+    // Publisher 1: /dvl/twist
+    void publish_dummy_velocity(const rclcpp::Time &stamp) {
+  geometry_msgs::msg::TwistWithCovarianceStamped msg;
 
-    // Dummy linear velocity (m/s)
-    msg.twist.twist.linear.x = 0.5;
-    msg.twist.twist.linear.y = 0.2;
-    msg.twist.twist.linear.z = -0.1;
+  msg.header.stamp = stamp;
+  msg.header.frame_id = "dvl_link";
 
-    // Variance = uncertainty squared
-    msg.twist.covariance[0] = 0.02 * 0.02;
-    msg.twist.covariance[7] = 0.03 * 0.03;
-    msg.twist.covariance[14] = 0.04 * 0.04;
+  // Dummy linear velocity (m/s)
+  msg.twist.twist.linear.x = 0.5;
+  msg.twist.twist.linear.y = 0.2;
+  msg.twist.twist.linear.z = -0.1;
 
-    // Angular velocity is not measured here
-    msg.twist.covariance[21] = 1000000.0;
-    msg.twist.covariance[28] = 1000000.0;
-    msg.twist.covariance[35] = 1000000.0;
+  // Variance = uncertainty squared
+  msg.twist.covariance[0] = 0.02 * 0.02;
+  msg.twist.covariance[7] = 0.03 * 0.03;
+  msg.twist.covariance[14] = 0.04 * 0.04;
 
-    twist_publisher_->publish(msg);
-  }
+  // Angular velocity is not measured here
+  msg.twist.covariance[21] = 1000000.0;
+  msg.twist.covariance[28] = 1000000.0;
+  msg.twist.covariance[35] = 1000000.0;
 
-  // Publisher 2: /dvl/altitude
-  void publish_dummy_altitude(const rclcpp::Time &stamp) {
-    sensor_msgs::msg::Range msg;
+  twist_publisher_->publish(msg);
+}
 
-    msg.header.stamp = stamp;
-    msg.header.frame_id = "dvl_link";
+// Publisher 2: /dvl/altitude
+void publish_dummy_altitude(const rclcpp::Time &stamp) {
+  sensor_msgs::msg::Range msg;
 
-    msg.radiation_type = sensor_msgs::msg::Range::ULTRASOUND;
+  msg.header.stamp = stamp;
+  msg.header.frame_id = "dvl_link";
 
-    // Dummy field of view, not verified from datasheet
-    msg.field_of_view = 0.5;
+  msg.radiation_type = sensor_msgs::msg::Range::ULTRASOUND;
 
-    // Kogger Micro DVL measurement range
-    msg.min_range = 0.05;
-    msg.max_range = 10.0;
+  // Dummy field of view, not verified from datasheet
+  msg.field_of_view = 0.5;
 
-    // Dummy distance above seabed
-    msg.range = 1.5;
+  // Kogger Micro DVL measurement range
+  msg.min_range = 0.05;
+  msg.max_range = 10.0;
 
-    altitude_publisher_->publish(msg);
-  }
+  // Dummy distance above seabed
+  msg.range = 1.5;
 
-  // Publisher 3: /dvl/status
-  void publish_dummy_status(const rclcpp::Time &stamp) {
-    diagnostic_msgs::msg::DiagnosticArray msg;
+  altitude_publisher_->publish(msg);
+}
 
-    msg.header.stamp = stamp;
+// Publisher 3: /dvl/status
+void publish_dummy_status(const rclcpp::Time &stamp) {
+  diagnostic_msgs::msg::DiagnosticArray msg;
 
-    diagnostic_msgs::msg::DiagnosticStatus status;
+  msg.header.stamp = stamp;
 
-    status.name = "uuv_dvl_driver";
-    status.hardware_id = "kogger_micro_dvl";
+  diagnostic_msgs::msg::DiagnosticStatus status;
 
-    status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+  status.name = "uuv_dvl_driver";
+  status.hardware_id = "kogger_micro_dvl";
 
-    status.message = "Simulated data - no DVL connected";
+  status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
 
-    add_status_value(status, "frame_rate_hz", "1.0");
-    add_status_value(status, "checksum_errors", "0");
-    add_status_value(status, "unknown_id_count", "0");
-    add_status_value(status, "raw_flags", "0");
+  status.message = "Simulated data - no DVL connected";
 
-    msg.status.push_back(status);
+  add_status_value(status, "frame_rate_hz", "1.0");
+  add_status_value(status, "checksum_errors", "0");
+  add_status_value(status, "unknown_id_count", "0");
+  add_status_value(status, "raw_flags", "0");
 
-    status_publisher_->publish(msg);
-  }
+  msg.status.push_back(status);
 
-  // Helper for adding diagnostic key-value pairs
-  void add_status_value(diagnostic_msgs::msg::DiagnosticStatus &status, const std::string &key,
-                        const std::string &value) {
-    diagnostic_msgs::msg::KeyValue item;
+  status_publisher_->publish(msg);
+}
 
-    item.key = key;
-    item.value = value;
+// Helper for adding diagnostic key-value pairs
+void add_status_value(diagnostic_msgs::msg::DiagnosticStatus &status, const std::string &key,
+                      const std::string &value) {
+  diagnostic_msgs::msg::KeyValue item;
 
-    status.values.push_back(item);
-  }
+  item.key = key;
+  item.value = value;
 
-  // Publisher 4
-  void publish_dummy_raw(const rclcpp::Time &stamp) {
-    uuv_msgs::msg::KoggerDvlVel msg;
+  status.values.push_back(item);
+}
 
-    msg.header.stamp = stamp;
-    msg.header.frame_id = "dvl_link";
+// Publisher 4
+void publish_dummy_raw(const rclcpp::Time &stamp) {
+  uuv_msgs::msg::KoggerDvlVel msg;
 
-    // Device information
-    msg.flags = 0;
-    msg.device_timestamp_ms = 1000;
+  msg.header.stamp = stamp;
+  msg.header.frame_id = "dvl_link";
 
-    // Timing information
-    msg.delta_time = 1.0;
-    msg.latency = 0.02;
+  // Device information
+  msg.flags = 0;
+  msg.device_timestamp_ms = 1000;
 
-    // Linear velocity (m/s)
-    msg.vel_x = 0.5;
-    msg.vel_y = 0.2;
-    msg.vel_z = -0.1;
+  // Timing information
+  msg.delta_time = 1.0;
+  msg.latency = 0.02;
 
-    // Additional velocity fields
-    msg.vel_z1 = 0.0;
-    msg.vel_z2 = 0.0;
+  // Linear velocity (m/s)
+  msg.vel_x = 0.5;
+  msg.vel_y = 0.2;
+  msg.vel_z = -0.1;
 
-    // Velocity uncertainties (m/s)
-    msg.unc_x = 0.02;
-    msg.unc_y = 0.03;
-    msg.unc_z = 0.04;
+  // Additional velocity fields
+  msg.vel_z1 = 0.0;
+  msg.vel_z2 = 0.0;
 
-    msg.unc_z1 = 0.05;
-    msg.unc_z2 = 0.05;
+  // Velocity uncertainties (m/s)
+  msg.unc_x = 0.02;
+  msg.unc_y = 0.03;
+  msg.unc_z = 0.04;
 
-    // Distance measurements (m)
-    msg.dist_z = 1.5;
-    msg.dist_z1 = 1.4;
-    msg.dist_z2 = 1.6;
+  msg.unc_z1 = 0.05;
+  msg.unc_z2 = 0.05;
 
-    raw_publisher_->publish(msg);
-  }
+  // Distance measurements (m)
+  msg.dist_z = 1.5;
+  msg.dist_z1 = 1.4;
+  msg.dist_z2 = 1.6;
 
-  // Publisher declarations
-  rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_publisher_;
+  raw_publisher_->publish(msg);
+}
 
-  rclcpp::Publisher<sensor_msgs::msg::Range>::SharedPtr altitude_publisher_;
+// Publisher declarations
+rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_publisher_;
 
-  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr status_publisher_;
+rclcpp::Publisher<sensor_msgs::msg::Range>::SharedPtr altitude_publisher_;
 
-  rclcpp::Publisher<uuv_msgs::msg::KoggerDvlVel>::SharedPtr raw_publisher_;
+rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr status_publisher_;
 
-  // Timer declaration
-  rclcpp::TimerBase::SharedPtr timer_;
+rclcpp::Publisher<uuv_msgs::msg::KoggerDvlVel>::SharedPtr raw_publisher_;
 
-  // Temporary parser integration test
-  std::vector<uint8_t> test_payload(68, 0);
-
-  // Timestamp = 1000 ms
-  test_payload[4] = 0xE8;
-  test_payload[5] = 0x03;
-
-  // Velocity X = 1.0 m/s
-  test_payload[18] = 0x80;
-  test_payload[19] = 0x3F;
-
-  auto parsed = parse_dvl_vel(test_payload);
-
-  RCLCPP_INFO(this->get_logger(), "Parser test: timestamp=%.0f ms, velocity_x=%.2f m/s",
-              parsed.at("TIMESTAMP"), parsed.at("VELOCITY_X"));
-};
+// Timer declaration
+rclcpp::TimerBase::SharedPtr timer_;
+}
+;
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
