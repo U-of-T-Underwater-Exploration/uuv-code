@@ -56,6 +56,8 @@ void DvlSerialReader::poll(const FrameCallback &on_frame) {
     const ssize_t n = ::read(fd_, bytes, sizeof(bytes));
 
     if(n > 0) {
+      std::fprintf(stderr, "SERIAL: received %zd bytes\n", n);
+
       buffer_.insert(buffer_.end(), bytes, bytes + n);
     } else if(n == 0) {
       break;
