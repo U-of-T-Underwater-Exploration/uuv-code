@@ -42,10 +42,16 @@ class DVLDriver : public rclcpp::Node {
 
     // Poll the serial port 100 times per second.
     timer_ = this->create_wall_timer(std::chrono::milliseconds(10), [this]() {
+      RCLCPP_INFO_ONCE(this->get_logger(), "DVL serial polling timer is running");
+
       try {
         serial_reader_->poll([this](uint8_t id, uint8_t mode, const std::vector<uint8_t> &payload) {
           // Only handle DVL velocity messages.
           // Extract TYPE from bits 0–1
+
+          RCLCPP_INFO(this->get_logger(), "Valid frame: ID=0x%02X, MODE=0x%02X, LENGTH=%zu",
+                      static_cast<unsigned>(id), static_cast<unsigned>(mode), payload.size());
+                      
           uint8_t type = mode & 0x03;
 
           // Extract VERSION from bits 3–5
@@ -184,8 +190,8 @@ class DVLDriver : public rclcpp::Node {
     // Packet header ID
     msg.id = id;
 
-                 // Unsigned 32-bit fields
-                 msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
+    // Unsigned 32-bit fields
+    msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
     msg.device_timestamp_ms = static_cast<uint32_t>(parsed.at("TIMESTAMP"));
 
     // Timing information
