@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -11,6 +12,7 @@
 #include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/range.hpp"
+#include "uuv_dvl_driver/uuv_dvl_serial_reader.hpp"
 #include "uuv_dvl_driver/uuv_dvl_vel_parser.hpp"
 #include "uuv_msgs/msg/kogger_dvl_vel.hpp"
 
@@ -31,44 +33,47 @@ class DVLDriver : public rclcpp::Node {
     // Publisher 4: raw DVL measurements
     raw_publisher_ = this->create_publisher<uuv_msgs::msg::KoggerDvlVel>("/dvl/raw", 10);
 
-    timer_ = this->create_wall_timer(std::chrono::seconds(1), [this]() {
-      auto stamp = this->now();
+    // Read the serial device path from a ROS parameter.
+    const auto port = this->declare_parameter<std::string>("serial_port", "");
 
-      // Create a simulated 68-byte DVL velocity payload
-      std::vector<uint8_t> payload(68, 0);
+    if(port.empty()) { throw std::runtime_error("Please specify the DVL serial_port parameter."); }
 
-      // TIMESTAMP = 1000 ms (little-endian uint32_t)
-      payload[4] = 0xE8;
-      payload[5] = 0x03;
+    serial_reader_ = std::make_unique<DvlSerialReader>(port);
 
-      // VELOCITY_X = 1.0 m/s (little-endian IEEE 754 float)
-      payload[16] = 0x00;
-      payload[17] = 0x00;
-      payload[18] = 0x80;
-      payload[19] = 0x3F;
+    // Poll the serial port 100 times per second.
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(10), [this]() {
+      try {
+        serial_reader_->poll([this](uint8_t id, uint8_t mode, const std::vector<uint8_t> &payload) {
+          // Only handle DVL velocity messages.
+          // Extract TYPE from bits 0–1
+          uint8_t type = mode & 0x03;
 
-      // FLAGS = 257
-      payload[0] = 0x01;
-      payload[1] = 0x01;
+          // Extract VERSION from bits 3–5
+          uint8_t version = (mode >> 3) & 0x07;
 
-      // DISTANCE_Z = 1.5 m
-      payload[56] = 0x00;
-      payload[57] = 0x00;
-      payload[58] = 0xC0;
-      payload[59] = 0x3F;
+          // Extract RESPONSE from bit 7
+          bool is_response = (mode & 0x80) != 0;
 
-      // Decode and publish the simulated payload
-      auto parsed = parse_dvl_vel(payload);
+          // Only accept normal ID_DVL_VEL version 2 data
+          if(id != 0x79 || type != 1 || version != 2 || is_response || payload.size() != 68) {
+            return;
+          }
 
-      // Publish the same decoded measurements to all topics
+          auto parsed = parse_dvl_vel(payload);
 
-      publish_parsed_raw(stamp, parsed);
-      publish_parsed_velocity(stamp, parsed);
-      publish_parsed_altitude(stamp, parsed);
-      publish_parsed_status(stamp, parsed);
+          auto stamp = this->now();
+
+          publish_parsed_raw(stamp, parsed);
+          publish_parsed_velocity(stamp, parsed);
+          publish_parsed_altitude(stamp, parsed);
+          publish_parsed_status(stamp, parsed);
+        });
+      } catch(const std::exception &e) {
+        RCLCPP_ERROR(this->get_logger(), "DVL serial reader error: %s", e.what());
+      }
     });
 
-    RCLCPP_INFO(this->get_logger(), "DVL Driver started in simulated payload mode");
+    RCLCPP_INFO(this->get_logger(), "DVL driver configured for serial port %s", port.c_str());
   }
 
  private:
@@ -81,7 +86,7 @@ class DVLDriver : public rclcpp::Node {
     msg.header.stamp = stamp;
     msg.header.frame_id = "dvl_link";
 
-    // Velocities from your parser
+    // Velocities from parser
     msg.twist.twist.linear.x = parsed.at("VELOCITY_X");
     msg.twist.twist.linear.y = parsed.at("VELOCITY_Y");
     msg.twist.twist.linear.z = parsed.at("VELOCITY_Z");
@@ -135,11 +140,10 @@ class DVLDriver : public rclcpp::Node {
     status.hardware_id = "kogger_micro_dvl";
 
     status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+    status.message = "Serial data received - frame quality not fully validated";
 
-    status.message = "Simulated payload - no DVL connected";
-
-    // This is the simulated timer rate, not the sensor measurement (which is actually 1 MHz)
-    add_status_value(status, "frame_rate_hz", "1.0");
+    // This is the number of times the program checks the serial port
+    add_status_value(status, "configured_polling_rate_hz", "100");
 
     // These counters are not implemented yet.
     // Do not claim zero hardware errors.
@@ -169,17 +173,18 @@ class DVLDriver : public rclcpp::Node {
 
   // Publisher 4
 
-  void publish_parsed_raw(const rclcpp::Time &stamp, const std::map<std::string, double> &parsed) {
+  void publish_parsed_raw(const rclcpp::Time &stamp, const std::map<std::string, double> &parsed,
+                          uint8_t id) {
     uuv_msgs::msg::KoggerDvlVel msg;
 
     msg.header.stamp = stamp;
     msg.header.frame_id = "dvl_link";
 
-    // Packet header ID (change soon?)
-    msg.id = 0x79;
+    // Packet header ID
+    msg.id = id
 
-    // Unsigned 32-bit fields
-    msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
+                 // Unsigned 32-bit fields
+                 msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
     msg.device_timestamp_ms = static_cast<uint32_t>(parsed.at("TIMESTAMP"));
 
     // Timing information
@@ -219,6 +224,8 @@ class DVLDriver : public rclcpp::Node {
 
   // Timer declaration
   rclcpp::TimerBase::SharedPtr timer_;
+
+  std::unique_ptr<DvlSerialReader> serial_reader_;
 };
 
 int main(int argc, char *argv[]) {
