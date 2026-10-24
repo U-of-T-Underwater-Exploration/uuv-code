@@ -181,7 +181,7 @@ class DVLDriver : public rclcpp::Node {
     msg.header.frame_id = "dvl_link";
 
     // Packet header ID
-    msg.id = id
+    msg.id = id;
 
                  // Unsigned 32-bit fields
                  msg.flags = static_cast<uint32_t>(parsed.at("FLAGS"));
