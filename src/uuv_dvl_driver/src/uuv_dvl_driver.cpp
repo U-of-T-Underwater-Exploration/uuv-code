@@ -2,6 +2,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
@@ -9,31 +10,25 @@
 #include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/range.hpp"
-#include "uuv_msgs/msg/kogger_dvl_vel.hpp"
-
 #include "uuv_dvl_driver/uuv_dvl_parser.hpp"
-#include <vector>
+#include "uuv_msgs/msg/kogger_dvl_vel.hpp"
 
 class DVLDriver : public rclcpp::Node {
  public:
   DVLDriver() : Node("uuv_dvl_driver") {
     // Publisher 1: velocity
     twist_publisher_ =
-        this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
-            "/dvl/twist", 10);
+        this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>("/dvl/twist", 10);
 
     // Publisher 2: altitude
-    altitude_publisher_ =
-        this->create_publisher<sensor_msgs::msg::Range>("/dvl/altitude", 10);
+    altitude_publisher_ = this->create_publisher<sensor_msgs::msg::Range>("/dvl/altitude", 10);
 
     // Publisher 3: diagnostics
     status_publisher_ =
-        this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
-            "/dvl/status", 10);
+        this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>("/dvl/status", 10);
 
     // Publisher 4: raw DVL measurements
-    raw_publisher_ =
-        this->create_publisher<uuv_msgs::msg::KoggerDvlVel>("/dvl/raw", 10);
+    raw_publisher_ = this->create_publisher<uuv_msgs::msg::KoggerDvlVel>("/dvl/raw", 10);
 
     // Publish dummy measurements
     timer_ = this->create_wall_timer(std::chrono::seconds(1), [this]() {
@@ -50,7 +45,7 @@ class DVLDriver : public rclcpp::Node {
 
  private:
   // Publisher 1: /dvl/twist
-  void publish_dummy_velocity(const rclcpp::Time& stamp) {
+  void publish_dummy_velocity(const rclcpp::Time &stamp) {
     geometry_msgs::msg::TwistWithCovarianceStamped msg;
 
     msg.header.stamp = stamp;
@@ -75,7 +70,7 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Publisher 2: /dvl/altitude
-  void publish_dummy_altitude(const rclcpp::Time& stamp) {
+  void publish_dummy_altitude(const rclcpp::Time &stamp) {
     sensor_msgs::msg::Range msg;
 
     msg.header.stamp = stamp;
@@ -97,7 +92,7 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Publisher 3: /dvl/status
-  void publish_dummy_status(const rclcpp::Time& stamp) {
+  void publish_dummy_status(const rclcpp::Time &stamp) {
     diagnostic_msgs::msg::DiagnosticArray msg;
 
     msg.header.stamp = stamp;
@@ -122,8 +117,8 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Helper for adding diagnostic key-value pairs
-  void add_status_value(diagnostic_msgs::msg::DiagnosticStatus& status,
-                        const std::string& key, const std::string& value) {
+  void add_status_value(diagnostic_msgs::msg::DiagnosticStatus &status, const std::string &key,
+                        const std::string &value) {
     diagnostic_msgs::msg::KeyValue item;
 
     item.key = key;
@@ -133,7 +128,7 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Publisher 4
-  void publish_dummy_raw(const rclcpp::Time& stamp) {
+  void publish_dummy_raw(const rclcpp::Time &stamp) {
     uuv_msgs::msg::KoggerDvlVel msg;
 
     msg.header.stamp = stamp;
@@ -173,23 +168,35 @@ class DVLDriver : public rclcpp::Node {
   }
 
   // Publisher declarations
-  rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
-      twist_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_publisher_;
 
   rclcpp::Publisher<sensor_msgs::msg::Range>::SharedPtr altitude_publisher_;
 
-  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
-      status_publisher_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr status_publisher_;
 
   rclcpp::Publisher<uuv_msgs::msg::KoggerDvlVel>::SharedPtr raw_publisher_;
 
   // Timer declaration
   rclcpp::TimerBase::SharedPtr timer_;
 
-  
+  // Temporary parser integration test
+  std::vector<uint8_t> test_payload(68, 0);
+
+  // Timestamp = 1000 ms
+  test_payload[4] = 0xE8;
+  test_payload[5] = 0x03;
+
+  // Velocity X = 1.0 m/s
+  test_payload[18] = 0x80;
+  test_payload[19] = 0x3F;
+
+  auto parsed = parse_dvl_vel(test_payload);
+
+  RCLCPP_INFO(this->get_logger(), "Parser test: timestamp=%.0f ms, velocity_x=%.2f m/s",
+              parsed.at("TIMESTAMP"), parsed.at("VELOCITY_X"));
 };
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<DVLDriver>();
