@@ -9,7 +9,9 @@ TARGET_BAUD = 115200
 # ID_UART BAUDRATE range in the Kogger SBP spec is 9600 ... 921600
 BAUD_RATES = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
 SCAN_SECONDS = 1.5
+PROBE_SECONDS = 0.5
 
+ID_TIMESTAMP = 0x01
 ID_UART = 0x18
 ID_DVL_VEL = 0x79
 KEY_CONFIRM = 0xC96B5D4A
@@ -92,21 +94,49 @@ def read_frames(ser, seconds):
     return frames, total_bytes
 
 
+def probe(baud):
+    """Send GETTING requests at this baud and return True if the device answers."""
+    # MODE: TYPE=3 (GETTING), VERSION=0
+    get_mode = 0x03
+    # ID_UART GETTING format [U4 KEY_CONFIRM, U1 UART_ID]; reply contains the current BAUDRATE
+    uart_request = build_frame(get_mode, ID_UART, struct.pack("<IB", KEY_CONFIRM, 1))
+    # ID_TIMESTAMP GETTING has no payload; used as a fallback in case ID_UART is not answered
+    timestamp_request = build_frame(get_mode, ID_TIMESTAMP, b"")
+
+    with open_port(baud) as ser:
+        ser.reset_input_buffer()
+        ser.write(uart_request + timestamp_request)
+        ser.flush()
+        frames, total_bytes = read_frames(ser, PROBE_SECONDS)
+
+    answered = False
+    for mode, frame_id, payload in frames:
+        is_response = bool(mode & 0x80)
+        if frame_id == ID_UART and is_response and len(payload) >= 1:
+            print(f"    ID_UART RESP: {RESP_CODES.get(payload[0], payload[0])}")
+            answered = True
+        elif frame_id == ID_UART and len(payload) == 9:
+            _, uart_id, reported_baud = struct.unpack("<IBI", payload)
+            print(f"    ID_UART CONTENT: UART_ID={uart_id}, BAUDRATE={reported_baud}")
+            answered = True
+        elif frame_id == ID_TIMESTAMP and is_response and len(payload) >= 1:
+            print(f"    ID_TIMESTAMP RESP: {RESP_CODES.get(payload[0], payload[0])}")
+            answered = True
+        elif frame_id == ID_TIMESTAMP and len(payload) == 4:
+            (timestamp,) = struct.unpack("<I", payload)
+            print(f"    ID_TIMESTAMP CONTENT: {timestamp} ms")
+            answered = True
+
+    print(f"{baud:>7} baud: {total_bytes:6} bytes, {len(frames):4} valid frames, "
+          f"{'ANSWERED' if answered else 'no answer'}")
+    return answered
+
+
 def scan():
-    best_baud = None
-    best_count = 0
     for baud in BAUD_RATES:
-        with open_port(baud) as ser:
-            ser.reset_input_buffer()
-            frames, total_bytes = read_frames(ser, SCAN_SECONDS)
-        dvl_count = sum(1 for _, frame_id, _ in frames if frame_id == ID_DVL_VEL)
-        ids = sorted({frame_id for _, frame_id, _ in frames})
-        print(f"{baud:>7} baud: {total_bytes:6} bytes, {len(frames):4} valid frames, "
-              f"{dvl_count:4} ID_DVL_VEL, ids={[hex(x) for x in ids]}")
-        if len(frames) > best_count:
-            best_baud = baud
-            best_count = len(frames)
-    return best_baud
+        if probe(baud):
+            return baud
+    return None
 
 
 def set_baud(current_baud, new_baud):
@@ -135,7 +165,7 @@ def main():
     print(f"Scanning {PORT} ...")
     current_baud = scan()
     if current_baud is None:
-        print("No valid SBP frames at any baud rate. Is the DVL powered and streaming?")
+        print("No answer at any baud rate. Is the DVL powered and wired TX/RX correctly?")
         return
     print(f"Detected DVL at {current_baud} baud")
 
@@ -144,6 +174,8 @@ def main():
         time.sleep(0.5)
 
     print(f"Verifying at {TARGET_BAUD} baud ...")
+    if not probe(TARGET_BAUD):
+        print(f"Device did not answer at {TARGET_BAUD} baud")
     with open_port(TARGET_BAUD) as ser:
         ser.reset_input_buffer()
         frames, total_bytes = read_frames(ser, SCAN_SECONDS)
