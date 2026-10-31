@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import ExternalShutdownException
 from pwm_msg.msg import CommandPWM
 from pwm_msg.msg import ThrustersPWM
 from std_msgs.msg import Float32MultiArray
@@ -108,6 +109,11 @@ class PWMDriver(Node):
         navigator.set_pwm_freq_hz(freq)
         navigator.set_pwm_enable(True)
 
+        self.stop_thrusters()
+
+    def stop_thrusters(self):
+        """Set all thrusters to the neutral PWM value."""
+
         init_pwm = [0.075] * 8  # Initial PWM values for thrusters
         self.set_pwm_thruster_channels(init_pwm)
 
@@ -115,9 +121,18 @@ class PWMDriver(Node):
 def main(args=None):
     rclpy.init(args=args)
     pwm_driver_node = PWMDriver()
-    rclpy.spin(pwm_driver_node)
-    pwm_driver_node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(pwm_driver_node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        try:
+            pwm_driver_node.stop_thrusters()
+        except Exception as e:
+            print(f'Failed to stop thrusters on shutdown: {e}')
+        pwm_driver_node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
