@@ -11,7 +11,8 @@
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
-  <depend>uuv_joystick_hal_msgs</depend>
+  <depend>uuv_joystick_msgs</depend>
+  <exec_depend>joy</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

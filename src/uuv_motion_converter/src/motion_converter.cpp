@@ -137,10 +137,10 @@ class MotionConverter : public rclcpp::Node
         // TODO: Extract motion commands from msg
         motion_cmd(0) = msg->surge;
         motion_cmd(1) = msg->sway;
-        motion_cmd(2) = msg->heave; // 2.0 - 0.5;
+        motion_cmd(2) = msg->heave;
         motion_cmd(3) = msg->roll;
         motion_cmd(4) = msg->pitch;
-        motion_cmd(5) = msg->yaw; // 2.0 - 0.5;
+        motion_cmd(5) = msg->yaw;
 
         for (size_t i = 0; i < msg->actions.size(); i++){
             if (msg->actions[i].action == 4){
@@ -222,9 +222,13 @@ class MotionConverter : public rclcpp::Node
                 }
                 motor_percentage = std::clamp(motor_percentage, -1.0f, 1.0f);
             }
-            
-            //Sets indexes based on thruster id
-            thruster_cmd.data[thrusters[i].id] = motor_percentage; 
+
+            int motor_id = thrusters[i].id;
+            if (motor_id < 0 || motor_id >= 8) {
+                RCLCPP_ERROR(this->get_logger(), "Thruster %d has invalid id %d, skipping", i, motor_id);
+                continue;
+            }
+            thruster_cmd.data[motor_id] = motor_percentage;
         }
 
         thruster_cmd_pub_->publish(thruster_cmd);
@@ -232,6 +236,11 @@ class MotionConverter : public rclcpp::Node
 
     // Linear mapping from thrust to thrust_percentage
     float thrust_mapping(float thrust, const Thruster& thruster){
+        // Correct for thrusters mounted in reverse orientation
+        if (thruster.inverted) {
+            thrust = -thrust;
+        }
+
         if (thrust > 0.0f) {
             if (thruster.max_forward_thrust == 0.0) {
                 RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);
@@ -249,6 +258,11 @@ class MotionConverter : public rclcpp::Node
     }
 
     float normalize_factor(float thrust, const Thruster& thruster){
+        // Correct for thrusters mounted in reverse orientation
+        if (thruster.inverted) {
+            thrust = -thrust;
+        }
+
         if (thrust > 0.0f) {
             if (thruster.max_forward_thrust == 0.0) {
                 RCLCPP_WARN(this->get_logger(), "Max forward thrust is zero for thruster %d", thruster.id);
