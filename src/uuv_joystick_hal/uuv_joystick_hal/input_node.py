@@ -34,11 +34,11 @@ class JoystickHAL(Node):
 
             # Safe axis access
             cmd.surge = msg.axes[1] if len(msg.axes) > 1 else 0.0
-            cmd.roll  = msg.axes[0] if len(msg.axes) > 0 else 0.0
+            cmd.roll  = msg.axes[5] if len(msg.axes) > 0 else 0.0
             cmd.sway = msg.axes[3] if len(msg.axes) > 3 else 0.0
             cmd.heave = msg.axes[2] if len(msg.axes) > 2 else 0.0
             cmd.pitch  = msg.axes[4] if len(msg.axes) > 4 else 0.0   
-            cmd.yaw = msg.axes[5] if len(msg.axes) > 5 else 0.0
+            cmd.yaw = msg.axes[0] if len(msg.axes) > 5 else 0.0
             cmd.mode  = 0
             
             if not self.prev_buttons:
